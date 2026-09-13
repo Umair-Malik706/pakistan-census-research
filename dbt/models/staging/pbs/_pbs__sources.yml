@@ -1,0 +1,61 @@
+version: 2
+
+sources:
+  - name: pbs_raw
+    description: >
+      Raw Pakistan Bureau of Statistics census data loaded into DuckDB
+      from official source workbooks. Raw values are preserved as closely
+      as possible to the published source and should not be treated as
+      research-ready without downstream transformation.
+
+    schema: raw
+
+    tables:
+      - name: census_2023_table_04
+        identifier: pbs_census_2023_table_04
+
+        description: >
+          Pakistan Population and Housing Census 2023 Table 4:
+          Population by single year age, sex and rural/urban.
+          Currently contains the Punjab district-wise PBS workbook.
+
+        columns:
+          - name: source_id
+            description: Unique identifier linking the record to the project source manifest.
+            data_tests:
+              - not_null
+
+          - name: source_file
+            description: Original PBS workbook filename.
+            data_tests:
+              - not_null
+
+          - name: source_sheet
+            description: Original Excel worksheet name.
+            data_tests:
+              - not_null
+
+          - name: source_row_number
+            description: Original Excel row number from which the record was ingested.
+            data_tests:
+              - not_null
+
+          - name: geography_name_raw
+            description: Geography heading exactly as represented in the PBS workbook.
+            data_tests:
+              - not_null
+
+          - name: geography_level
+            description: Geography type assigned during structural ingestion.
+            data_tests:
+              - not_null
+
+          - name: district_name_raw
+            description: Parent district heading preserved from the PBS workbook.
+            data_tests:
+              - not_null
+
+          - name: age_label_raw
+            description: Original PBS age or summary label, such as 01, 00 -- 04, or ALL AGES.
+            data_tests:
+              - not_null
