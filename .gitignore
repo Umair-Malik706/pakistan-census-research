@@ -9,3 +9,6 @@ logs/
 *.duckdb
 
 .env
+
+# Raw source data
+data/raw/**
