@@ -1,0 +1,119 @@
+version: 2
+
+models:
+  - name: stg_pbs__census_2023_table_04
+
+    description: >
+      Staging model for Pakistan Bureau of Statistics Population and Housing
+      Census 2023 Table 4: Population by single year age, sex and rural/urban.
+      This model remains intentionally close to the raw source. Source labels
+      and population values are preserved without research-level
+      interpretation.
+
+    columns:
+      - name: source_id
+        description: >
+          Identifier linking each record to the project source manifest.
+        data_tests:
+          - not_null
+
+      - name: source_file
+        description: >
+          Original PBS workbook filename from which the record was ingested.
+        data_tests:
+          - not_null
+
+      - name: source_sheet
+        description: >
+          Original Excel worksheet name.
+        data_tests:
+          - not_null
+
+      - name: source_row_number
+        description: >
+          Original Excel row number used for observation-level provenance.
+        data_tests:
+          - not_null
+
+      - name: geography_name_raw
+        description: >
+          Geography heading preserved from the PBS workbook without
+          standardization.
+        data_tests:
+          - not_null
+
+      - name: geography_level
+        description: >
+          Structural geography type assigned during ingestion.
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values:
+                  - district
+                  - tehsil
+                  - de_excluded_area
+
+      - name: district_name_raw
+        description: >
+          Parent district heading preserved from the PBS workbook.
+        data_tests:
+          - not_null
+
+      - name: age_label_raw
+        description: >
+          Original PBS age or summary label, such as ALL AGES, 00 -- 04,
+          BELOW 1, 01, or 75 & ABOVE.
+        data_tests:
+          - not_null
+
+      - name: all_all_sexes_raw
+        description: >
+          Raw PBS population value for all localities and all sexes.
+
+      - name: all_male_raw
+        description: >
+          Raw PBS population value for all localities, male.
+
+      - name: all_female_raw
+        description: >
+          Raw PBS population value for all localities, female.
+
+      - name: all_transgender_raw
+        description: >
+          Raw PBS population value for all localities, transgender.
+          The source value "-" is preserved where published.
+
+      - name: rural_all_sexes_raw
+        description: >
+          Raw PBS rural population value for all sexes.
+
+      - name: rural_male_raw
+        description: >
+          Raw PBS rural population value for males.
+
+      - name: rural_female_raw
+        description: >
+          Raw PBS rural population value for females.
+
+      - name: rural_transgender_raw
+        description: >
+          Raw PBS rural population value for transgender.
+          The source value "-" is preserved where published.
+
+      - name: urban_all_sexes_raw
+        description: >
+          Raw PBS urban population value for all sexes.
+
+      - name: urban_male_raw
+        description: >
+          Raw PBS urban population value for males.
+
+      - name: urban_female_raw
+        description: >
+          Raw PBS urban population value for females.
+
+      - name: urban_transgender_raw
+        description: >
+          Raw PBS urban population value for transgender.
+          The source value "-" is preserved where published.
