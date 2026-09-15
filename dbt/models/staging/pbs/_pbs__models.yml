@@ -67,53 +67,63 @@ models:
         data_tests:
           - not_null
 
-      - name: all_all_sexes_raw
+      - name: all_all_sexes
         description: >
-          Raw PBS population value for all localities and all sexes.
+          Population across all localities and all sexes. Numeric PBS values
+          are cast to BIGINT. The source symbol "-" is interpreted as zero
+          following arithmetic validation against published totals.
 
-      - name: all_male_raw
+      - name: all_male
         description: >
-          Raw PBS population value for all localities, male.
+          Male population across all localities. Stored as BIGINT, with the
+          source symbol "-" interpreted as zero.
 
-      - name: all_female_raw
+      - name: all_female
         description: >
-          Raw PBS population value for all localities, female.
+          Female population across all localities. Stored as BIGINT, with the
+          source symbol "-" interpreted as zero.
 
-      - name: all_transgender_raw
+      - name: all_transgender
         description: >
-          Raw PBS population value for all localities, transgender.
-          The source value "-" is preserved where published.
+          Transgender population across all localities. Stored as BIGINT, with
+          the source symbol "-" interpreted as zero.
 
-      - name: rural_all_sexes_raw
+      - name: rural_all_sexes
         description: >
-          Raw PBS rural population value for all sexes.
+          Rural population for all sexes. Stored as BIGINT, with the source
+          symbol "-" interpreted as zero.
 
-      - name: rural_male_raw
+      - name: rural_male
         description: >
-          Raw PBS rural population value for males.
+          Rural male population. Stored as BIGINT, with the source symbol "-"
+          interpreted as zero.
 
-      - name: rural_female_raw
+      - name: rural_female
         description: >
-          Raw PBS rural population value for females.
+          Rural female population. Stored as BIGINT, with the source symbol
+          "-" interpreted as zero.
 
-      - name: rural_transgender_raw
+      - name: rural_transgender
         description: >
-          Raw PBS rural population value for transgender.
-          The source value "-" is preserved where published.
+          Rural transgender population. Stored as BIGINT, with the source
+          symbol "-" interpreted as zero.
 
-      - name: urban_all_sexes_raw
+      - name: urban_all_sexes
         description: >
-          Raw PBS urban population value for all sexes.
+          Urban population for all sexes. Stored as BIGINT, with the source
+          symbol "-" interpreted as zero.
 
-      - name: urban_male_raw
+      - name: urban_male
         description: >
-          Raw PBS urban population value for males.
+          Urban male population. Stored as BIGINT, with the source symbol "-"
+          interpreted as zero.
 
-      - name: urban_female_raw
+      - name: urban_female
         description: >
-          Raw PBS urban population value for females.
+          Urban female population. Stored as BIGINT, with the source symbol
+          "-" interpreted as zero.
 
-      - name: urban_transgender_raw
+      - name: urban_transgender
         description: >
-          Raw PBS urban population value for transgender.
-          The source value "-" is preserved where published.
+          Urban transgender population. Stored as BIGINT, with the source
+          symbol "-" interpreted as zero.
