@@ -66,6 +66,38 @@ models:
           BELOW 1, 01, or 75 & ABOVE.
         data_tests:
           - not_null
+      
+      - name: age_type
+        description: >
+          Analytical classification of the PBS age label. Values distinguish
+          total population, single-year ages, closed age groups, and the
+          open-ended 75-and-above group.
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values:
+                  - all_ages
+                  - single_age
+                  - age_group
+                  - open_ended_age_group
+
+      - name: age_year
+        description: >
+          Single year of age when age_type is single_age. BELOW 1 is
+          represented analytically as age 0. Null for grouped or summary rows.
+
+      - name: age_lower
+        description: >
+          Lower bound of the age represented by the row. Equals age_year for
+          single-year ages, contains the lower bound for age groups, and is
+          null for ALL AGES.
+
+      - name: age_upper
+        description: >
+          Upper bound of the age represented by the row. Equals age_year for
+          single-year ages and contains the upper bound for closed age groups.
+          Null for ALL AGES and for the open-ended 75 & ABOVE group.
 
       - name: all_all_sexes
         description: >

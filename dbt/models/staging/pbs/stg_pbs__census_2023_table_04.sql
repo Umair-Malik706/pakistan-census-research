@@ -18,6 +18,73 @@ cleaned as (
         district_name_raw,
 
         age_label_raw,
+        case
+            when age_label_raw = 'ALL AGES' then 'all_ages'
+
+            when age_label_raw = 'BELOW 1'
+                then 'single_age'
+
+            when regexp_matches(age_label_raw, '^[0-9]{2}$')
+                then 'single_age'
+
+            when regexp_matches(
+                age_label_raw,
+                '^[0-9]{2} -- [0-9]{2}$'
+            )
+                then 'age_group'
+
+            when age_label_raw = '75 & ABOVE'
+                then 'open_ended_age_group'
+
+            else 'unknown'
+        end as age_type,
+
+        case
+            when age_label_raw = 'BELOW 1' then 0
+
+            when regexp_matches(age_label_raw, '^[0-9]{2}$')
+                then cast(age_label_raw as integer)
+
+            else null
+        end as age_year,
+
+        case
+            when age_label_raw = 'BELOW 1' then 0
+
+            when regexp_matches(age_label_raw, '^[0-9]{2}$')
+                then cast(age_label_raw as integer)
+
+            when regexp_matches(
+                age_label_raw,
+                '^[0-9]{2} -- [0-9]{2}$'
+            )
+                then cast(
+                    split_part(age_label_raw, ' -- ', 1)
+                    as integer
+                )
+
+            when age_label_raw = '75 & ABOVE' then 75
+
+            else null
+        end as age_lower,
+
+        case
+            when age_label_raw = 'BELOW 1' then 0
+
+            when regexp_matches(age_label_raw, '^[0-9]{2}$')
+                then cast(age_label_raw as integer)
+
+            when regexp_matches(
+                age_label_raw,
+                '^[0-9]{2} -- [0-9]{2}$'
+            )
+                then cast(
+                    split_part(age_label_raw, ' -- ', 2)
+                    as integer
+                )
+
+            else null
+        end as age_upper,
 
         case
             when all_all_sexes_raw = '-' then 0
