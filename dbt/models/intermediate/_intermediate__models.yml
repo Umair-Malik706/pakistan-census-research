@@ -83,3 +83,68 @@ models:
           combination. Stored as BIGINT.
         data_tests:
           - not_null
+      
+  - name: int_pbs__census_2023_table_04_geography
+    
+    description: >
+      Intermediate Census 2023 Table 4 model with analytical geography names.
+      Original PBS geography fields are retained for provenance. DISTRICT and
+      TEHSIL suffixes are removed from the analytical geography fields, while
+      special geography labels are preserved.
+
+    columns:
+      - name: geography_name_raw
+        description: >
+          Original geography heading exactly as preserved from the PBS source.
+        data_tests:
+          - not_null
+
+      - name: geography_name
+        description: >
+          Analytical geography name. DISTRICT and TEHSIL suffixes are removed
+          where applicable, while special geography labels are preserved.
+        data_tests:
+          - not_null
+
+      - name: geography_level
+        description: >
+          Geography type inherited from the ingestion and staging layers.
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values:
+                  - district
+                  - tehsil
+                  - de_excluded_area
+
+      - name: district_name_raw
+        description: >
+          Original parent district heading as published by PBS.
+        data_tests:
+          - not_null
+
+      - name: district_name
+        description: >
+          Analytical parent district name with the DISTRICT suffix removed.
+        data_tests:
+          - not_null
+
+      - name: residence
+        description: >
+          Residence category inherited from the long-format model.
+        data_tests:
+          - not_null
+
+      - name: sex
+        description: >
+          Sex category inherited from the long-format model.
+        data_tests:
+          - not_null
+
+      - name: population
+        description: >
+          Population count for the geography, age, residence, and sex
+          combination.
+        data_tests:
+          - not_null
