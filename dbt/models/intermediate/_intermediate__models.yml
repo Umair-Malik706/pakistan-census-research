@@ -1,0 +1,85 @@
+version: 2
+
+models:
+  - name: int_pbs__census_2023_table_04_long
+
+    description: >
+      Long-format intermediate model for PBS Census 2023 Table 4.
+      Each staging observation is expanded from twelve population columns
+      into residence, sex, and population rows. The original source and
+      age provenance fields are retained.
+
+    columns:
+      - name: source_id
+        description: >
+          Identifier linking the observation to the project source manifest.
+        data_tests:
+          - not_null
+
+      - name: source_row_number
+        description: >
+          Original Excel row number from the PBS workbook.
+        data_tests:
+          - not_null
+
+      - name: geography_name_raw
+        description: >
+          Geography heading preserved from the PBS source.
+        data_tests:
+          - not_null
+
+      - name: geography_level
+        description: >
+          Structural geography type inherited from staging.
+        data_tests:
+          - not_null
+
+      - name: district_name_raw
+        description: >
+          Parent district heading preserved from the PBS source.
+        data_tests:
+          - not_null
+
+      - name: age_label_raw
+        description: >
+          Original PBS age or summary label.
+        data_tests:
+          - not_null
+
+      - name: age_type
+        description: >
+          Analytical classification of the PBS age label.
+        data_tests:
+          - not_null
+
+      - name: residence
+        description: >
+          Residence category represented by the population value.
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values:
+                  - all_localities
+                  - rural
+                  - urban
+
+      - name: sex
+        description: >
+          Sex category represented by the population value.
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values:
+                  - all_sexes
+                  - male
+                  - female
+                  - transgender
+
+      - name: population
+        description: >
+          Population count for the geography, age, residence, and sex
+          combination. Stored as BIGINT.
+        data_tests:
+          - not_null
