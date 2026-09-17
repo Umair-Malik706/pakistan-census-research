@@ -148,3 +148,19 @@ models:
           combination.
         data_tests:
           - not_null
+      
+      - name: district_key
+        description: >
+          Stable analytical key for the parent district, constructed as
+          district:<district_name>.
+        data_tests:
+          - not_null
+
+      - name: geography_key
+        description: >
+          Stable analytical key identifying the geography represented by the
+          row. District keys use district:<district_name>. Tehsil keys include
+          both parent district and tehsil name. Special-area keys include the
+          parent district and special geography name.
+        data_tests:
+          - not_null

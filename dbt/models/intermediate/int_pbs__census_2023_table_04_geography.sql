@@ -53,7 +53,37 @@ cleaned_geography as (
 
     from long_format
 
+),
+
+added_geography_key as (
+
+    select
+        *,
+
+        'district:' || district_name as district_key,
+
+        case
+            when geography_level = 'district'
+                then 'district:' || district_name
+
+            when geography_level = 'tehsil'
+                then
+                    'tehsil:'
+                    || district_name
+                    || ':'
+                    || geography_name
+
+            when geography_level = 'de_excluded_area'
+                then
+                    'special:'
+                    || district_name
+                    || ':'
+                    || geography_name
+        end as geography_key
+
+    from cleaned_geography
+
 )
 
 select *
-from cleaned_geography
+from added_geography_key
