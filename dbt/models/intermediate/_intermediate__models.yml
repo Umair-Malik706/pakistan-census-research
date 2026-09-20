@@ -151,7 +151,7 @@ models:
       
       - name: district_key
         description: >
-          Stable analytical key for the parent district, constructed as
+          Stable analytical key for the parent district and the province, constructed as
           district:<district_name>.
         data_tests:
           - not_null
@@ -162,5 +162,11 @@ models:
           row. District keys use district:<district_name>. Tehsil keys include
           both parent district and tehsil name. Special-area keys include the
           parent district and special geography name.
+        data_tests:
+          - not_null
+      - name: province_name
+        description: >
+          Province or territory containing the geography. Currently Punjab
+          because only the Punjab Table 4 source has been ingested.
         data_tests:
           - not_null

@@ -5,27 +5,41 @@ select
     district_name,
     geography_name,
     district_key,
-    geography_key
+    geography_key,
+    province_name
 
 from {{ ref('int_pbs__census_2023_table_04_geography') }}
 
 where
+    province_name is null
+    
+    or
+    
     district_key is null
 
     or geography_key is null
 
     or (
         geography_level = 'district'
-        and geography_key <> district_key
+        and geography_key <> (
+	'district:'
+	|| province_name
+	|| ':'
+	|| district_name
+	
+        )
     )
 
     or (
         geography_level = 'tehsil'
         and geography_key <> (
             'tehsil:'
-            || district_name
-            || ':'
-            || geography_name
+	|| province_name
+	|| ':'
+	|| district_name
+	|| ':'
+	|| geography_name
+        
         )
     )
 
@@ -33,8 +47,11 @@ where
         geography_level = 'de_excluded_area'
         and geography_key <> (
             'special:'
-            || district_name
-            || ':'
-            || geography_name
+	|| province_name
+	|| ':'
+	|| district_name
+	|| ':'
+	|| geography_name
+        
         )
     )

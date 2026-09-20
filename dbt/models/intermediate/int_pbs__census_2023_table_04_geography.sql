@@ -16,6 +16,11 @@ cleaned_geography as (
         geography_name_raw,
         geography_level,
         district_name_raw,
+	
+	case
+            when source_id = 'pbs_2023_t04_punjab_districts'
+                then 'Punjab'
+        end as province_name,
 
         case
             when geography_level = 'district'
@@ -60,15 +65,25 @@ added_geography_key as (
     select
         *,
 
-        'district:' || district_name as district_key,
-
-        case
+        'district:'
+        || province_name
+        || ':'
+        || district_name
+        as district_key,
+        
+	case
             when geography_level = 'district'
-                then 'district:' || district_name
+                then
+                    'district:'
+                    || province_name
+                    || ':'
+                    || district_name
 
             when geography_level = 'tehsil'
                 then
                     'tehsil:'
+                    || province_name
+                    || ':'
                     || district_name
                     || ':'
                     || geography_name
@@ -76,10 +91,12 @@ added_geography_key as (
             when geography_level = 'de_excluded_area'
                 then
                     'special:'
+                    || province_name
+                    || ':'
                     || district_name
                     || ':'
                     || geography_name
-        end as geography_key
+        end as geography_key,
 
     from cleaned_geography
 

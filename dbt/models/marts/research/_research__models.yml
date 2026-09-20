@@ -1,0 +1,55 @@
+version: 2
+
+models:
+  - name: dim_geography
+
+    description: >
+      Reusable geography dimension derived from PBS Census 2023 Table 4.
+      Contains one row per geographic entity represented in the source data.
+      Geography keys include province and parent-district context where needed
+      so that names remain unambiguous as additional provinces are added.
+
+    columns:
+      - name: geography_key
+        description: >
+          Stable unique analytical identifier for the geographic entity.
+        data_tests:
+          - not_null
+          - unique
+
+      - name: geography_level
+        description: >
+          Administrative or source geography type.
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values:
+                  - district
+                  - tehsil
+                  - de_excluded_area
+
+      - name: geography_name
+        description: >
+          Clean analytical geography name derived from the PBS source.
+        data_tests:
+          - not_null
+
+      - name: province_name
+        description: >
+          Province or territory containing the geography.
+        data_tests:
+          - not_null
+
+      - name: district_key
+        description: >
+          Stable identifier for the parent district. For district rows this
+          equals geography_key.
+        data_tests:
+          - not_null
+
+      - name: district_name
+        description: >
+          Clean analytical name of the parent district.
+        data_tests:
+          - not_null
