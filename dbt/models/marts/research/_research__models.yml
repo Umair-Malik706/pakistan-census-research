@@ -53,3 +53,114 @@ models:
           Clean analytical name of the parent district.
         data_tests:
           - not_null
+  - name: fct_population_by_age_sex_residence
+
+    description: >
+      Research-ready Census 2023 population fact table containing mutually
+      exclusive age categories by geography, residence, and sex. Five-year
+      summary age groups and ALL AGES rows are excluded to prevent
+      double-counting. Source provenance is retained.
+
+    columns:
+      - name: census_year
+        description: Census reference year.
+        data_tests:
+          - not_null
+
+      - name: geography_key
+        description: >
+          Stable identifier linking the observation to dim_geography.
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_geography')
+                field: geography_key
+
+      - name: district_key
+        description: Stable identifier for the parent district.
+        data_tests:
+          - not_null
+
+      - name: province_name
+        description: Province or territory containing the geography.
+        data_tests:
+          - not_null
+
+      - name: age_label_raw
+        description: Original PBS age label retained for provenance.
+        data_tests:
+          - not_null
+
+      - name: age_type
+        description: >
+          Age classification. This mart contains only single-year ages and
+          the open-ended 75-and-above category.
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values:
+                  - single_age
+                  - open_ended_age_group
+
+      - name: age_year
+        description: >
+          Exact age for single-year observations. Null for 75 & ABOVE.
+
+      - name: age_lower
+        description: Lower bound of the represented age category.
+        data_tests:
+          - not_null
+
+      - name: age_upper
+        description: >
+          Upper age bound. Null only for the open-ended 75 & ABOVE category.
+
+      - name: residence
+        description: Residence category.
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values:
+                  - all_localities
+                  - rural
+                  - urban
+
+      - name: sex
+        description: Sex category.
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values:
+                  - all_sexes
+                  - male
+                  - female
+                  - transgender
+
+      - name: population
+        description: Population count for the represented combination.
+        data_tests:
+          - not_null
+
+      - name: source_id
+        description: Source-manifest identifier.
+        data_tests:
+          - not_null
+
+      - name: source_file
+        description: Original PBS workbook filename.
+        data_tests:
+          - not_null
+
+      - name: source_sheet
+        description: Original worksheet name.
+        data_tests:
+          - not_null
+
+      - name: source_row_number
+        description: Original Excel row number.
+        data_tests:
+          - not_null
