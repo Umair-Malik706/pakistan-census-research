@@ -179,6 +179,7 @@ The table uses mutually exclusive age categories so that population can be aggre
 ## Documentation
 
 - [Data Dictionary](DATA_DICTIONARY.md)
+- [Methodology](METHODOLOGY.md)
 
 
 \## Data Quality
