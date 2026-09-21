@@ -176,6 +176,9 @@ Research-ready population observations by:
 
 The table uses mutually exclusive age categories so that population can be aggregated without double-counting overlapping PBS age-group totals.
 
+## Documentation
+
+- [Data Dictionary](DATA_DICTIONARY.md)
 
 
 \## Data Quality
