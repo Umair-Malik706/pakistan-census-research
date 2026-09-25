@@ -59,3 +59,9 @@ sources:
             description: Original PBS age or summary label, such as 01, 00 -- 04, or ALL AGES.
             data_tests:
               - not_null
+      
+      - name: census_2023_table_04_national_qa
+        identifier: pbs_census_2023_table_04_national_qa
+        description: >
+          Official PBS Pakistan-level Census 2023 Table 4 observations,
+          retained separately for independent reconciliation of regional data.
