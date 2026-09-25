@@ -22,6 +22,9 @@ cleaned_geography as (
             
             when source_id = 'pbs_2023_t04_balochistan_districts'
                 then 'Balochistan'
+            
+            when source_id = 'pbs_2023_t04_islamabad'
+                then 'Islamabad Capital Territory'
         end as province_name,
 
         case

@@ -18,6 +18,7 @@ TARGET_SOURCE_IDS = {
     "pbs_2023_t04_kp_districts",
     "pbs_2023_t04_sindh_districts",
     "pbs_2023_t04_balochistan_districts",
+    "pbs_2023_t04_islamabad",
 }
 
 
