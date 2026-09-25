@@ -1,862 +1,542 @@
-\# Methodology
+# Methodology
 
+This document describes the methodology used to ingest, validate, transform, and model Pakistan Population and Housing Census 2023 Table 4 data within the Pakistan Census Research Data Warehouse.
 
+The current implementation covers the regional Table 4 workbooks for Punjab, Khyber Pakhtunkhwa, Sindh, Balochistan, and Islamabad Capital Territory. The official Pakistan-level Table 4 workbook is maintained separately as an independent quality-assurance source.
 
-This document describes the current methodology used to ingest, validate, transform, and publish Pakistan Population and Housing Census 2023 Table 4 data within the Pakistan Census Research Data Warehouse.
+## 1. Source Acquisition and Provenance
 
+The project uses official Pakistan Bureau of Statistics (PBS) census workbooks.
 
-
-Current implementation covers the regional Census 2023 Table 4
-workbooks for Punjab, Khyber Pakhtunkhwa, Sindh, Balochistan,
-and Islamabad Capital Territory.
-
-
-
-\## 1. Source Acquisition
-
-
-
-The project uses official Pakistan Bureau of Statistics census source files.
-
-
-
-Source metadata is recorded in:
-
-
+Source metadata is maintained in:
 
 ```text
-
-metadata/source\_manifest.csv
-
+metadata/source_manifest.csv
 ```
 
+The manifest provides fields for information such as publisher, census year, table number, table title, region, source page, file URL, local filename, retrieval metadata, and checksum.
 
+Original PBS workbooks are not manually edited before ingestion.
 
-For each source, the manifest records information such as:
+Raw files are stored under the project's raw-data structure and excluded from Git version control.
 
+This separation preserves the official source while allowing the warehouse to be rebuilt when ingestion or transformation logic changes.
 
+## 2. Regional Source Coverage
 
-\* publisher
+The current regional pipeline contains 727 geographic blocks.
 
-\* census year
+| Region                      | Geographic blocks | Raw observation rows |
+| --------------------------- | ----------------: | -------------------: |
+| Punjab                      |               182 |               16,744 |
+| Khyber Pakhtunkhwa          |               183 |               16,836 |
+| Sindh                       |               168 |               15,456 |
+| Balochistan                 |               192 |               17,664 |
+| Islamabad Capital Territory |                 2 |                  184 |
+| **Total**                   |           **727** |           **66,884** |
 
-\* table number
+Each regional geographic block contains 92 Table 4 observation rows.
 
-\* table title
-
-\* source page
-
-\* source file URL
-
-\* local filename
-
-\* retrieval information
-
-\* file checksum
-
-
-
-Raw source workbooks are not manually edited before ingestion.
-
-
-
-\## 2. Source Preservation
-
-
-
-Original PBS files are stored under the project's raw data structure and are excluded from Git version control.
-
-
-
-The analytical workflow does not overwrite or modify the original workbook.
-
-
-
-This separation allows:
-
-
-
-\* source reproduction
-
-\* auditability
-
-\* comparison with the published source
-
-\* re-ingestion if transformation logic changes
-
-
-
-\## 3. Workbook Profiling
-
-
-
-Before ingestion, the Punjab Table 4 workbook was structurally profiled.
-
-
-
-The workbook contained:
-
-
-
-\* 1 worksheet
-
-\* 16,931 worksheet rows
-
-\* 16 spreadsheet columns
-
-
-
-The census data itself occupies the first 13 columns.
-
-
-
-Columns 14–16 were excluded from ingestion because they are outside the intended Table 4 structure. A stray value was identified in one of these columns, reinforcing the decision not to treat those columns as census observations.
-
-
-
-No source file was edited to remove the anomaly.
-
-
-
-\## 4. Geographic Block Detection
-
-
-
-The PBS workbook is organized as repeating geographic blocks rather than as a conventional flat table.
-
-
-
-Each geographic block contains:
-
-
-
-1\. one geography heading
-
-2\. 92 census observation rows
-
-
-
-The Punjab workbook contains:
-
-
-
-\* 36 district blocks
-
-\* 145 tehsil blocks
-
-\* 1 De-Excluded Area block
-
-
-
-This produces:
-
-
+Therefore:
 
 ```text
-
-182 geographic blocks
-
+727 geographic blocks × 92 observations = 66,884 raw observations
 ```
 
+## 3. Workbook Profiling
 
+PBS regional workbooks are semi-structured spreadsheets rather than conventional flat data tables.
 
-Each block contains exactly:
+Before ingestion, source files are profiled to identify:
 
+* worksheet structure
+* row and column counts
+* geography headings
+* geography terminology
+* repeating block lengths
+* unexpected columns or values
 
+The Punjab workbook, for example, contained additional spreadsheet columns outside the intended 13-column Table 4 structure. These were excluded from ingestion without modifying the original workbook.
+
+Profiling the other regional files also revealed that geography terminology differs across Pakistan.
+
+## 4. Geographic Block Detection
+
+Regional Table 4 workbooks follow a repeating pattern:
 
 ```text
-
-92 observation rows
-
+geography heading
+92 census observation rows
+geography heading
+92 census observation rows
+...
 ```
 
-
-
-Therefore the expected number of raw analytical observations is:
-
-
+A geography heading is detected when the following row begins with:
 
 ```text
-
-182 × 92 = 16,744
-
+ALL AGES
 ```
 
+All 727 regional geographic blocks were found to use the same 92-row Table 4 observation template.
 
+This structural consistency allows the project to use one generalized ingestion architecture while preserving region-specific geography classifications.
 
-The raw database load was validated against this expected total.
+## 5. Regional Geography Classification
 
+PBS uses different administrative terminology across regional workbooks.
 
+The current pipeline recognizes:
 
-\## 5. Age-Row Template Validation
+```text
+district
+tehsil
+taluka
+sub_division
+sub_tehsil
+protected_area
+de_excluded_area
+```
 
+Examples include Punjab tehsils, Sindh talukas, Balochistan sub-tehsils, and Khyber Pakhtunkhwa sub-divisions.
 
+Khyber Pakhtunkhwa also contains `MALAKAND PROTECTED AREA`, which functions as a district-equivalent parent for its child sub-divisions.
 
-All 182 geographic blocks were checked against the same expected 92-row age template.
+Some Balochistan labels use geography terminology as a prefix rather than a suffix, for example:
 
+```text
+SUB-DIVISION CITY
+SUB-TEHSIL PANJPAI
+```
 
+The parser therefore recognizes both prefix and suffix forms.
 
-The template includes:
+Classification precedence is applied where labels contain overlapping terminology. For example:
 
+```text
+SUB-DIVISION SADDAR TEHSIL
+```
 
+is classified as a `sub_division` rather than a `tehsil`.
 
-\* `ALL AGES`
+## 6. Age-Row Template
 
-\* five-year age groups
+Each geographic block contains the same 92 published age and summary labels.
 
-\* individual ages
+These include:
 
-\* `BELOW 1`
+```text
+ALL AGES
+five-year age groups
+BELOW 1
+individual ages
+75 & ABOVE
+```
 
-\* `75 \& ABOVE`
+The repeated template is validated before analytical transformation.
 
+This allows structural changes or malformed source blocks to be detected before they enter downstream models.
 
+## 7. Raw Warehouse Loading
 
-All geographic blocks matched the expected structure.
+Python ingestion converts the regional workbooks into:
 
-
-
-This validation is performed before analytical transformation so structural source changes can be detected early.
-
-
-
-\## 6. Raw Warehouse Loading
-
-
-
-Python ingestion logic converts the semi-structured workbook into a flat DuckDB raw table.
-
-
+```text
+raw.pbs_census_2023_table_04
+```
 
 The raw table preserves:
 
-
-
-\* source identifier
-
-\* source filename
-
-\* worksheet name
-
-\* original Excel row number
-
-\* raw geography labels
-
-\* geography level
-
-\* parent district
-
-\* original age label
-
-\* all 12 published population fields
-
-
-
-The raw table uses text fields for population values so that PBS source symbols such as `-` remain unchanged during ingestion.
-
-
-
-Repeated ingestion of the same source is designed to be idempotent: existing records for the source are replaced rather than duplicated.
-
-
-
-\## 7. Raw-to-Source Reconciliation
-
-
-
-Representative workbook rows were manually reconciled against the DuckDB raw table.
-
-
-
-The checks included:
-
-
-
-\* district observations
-
-\* tehsil observations
-
-\* the workbook anomaly area
-
-\* the De-Excluded Area
-
-\* observations near the end of the workbook
-
-
-
-The sampled database values matched the corresponding workbook values.
-
-
-
-\## 8. Interpretation of PBS `-`
-
-
-
-PBS Table 4 frequently uses the symbol:
-
-
-
 ```text
-
-\-
-
+source identifier
+source filename
+worksheet name
+original Excel row number
+raw geography name
+geography level
+raw parent-district name
+original age label
+12 published population fields
 ```
 
-
-
-instead of a numeric value.
-
-
-
-The raw layer preserves this symbol unchanged.
-
-
-
-Before converting it to zero in analytical models, arithmetic relationships in the source were tested.
-
-
-
-For example:
-
-
+The 12 population fields represent:
 
 ```text
-
-all\_sexes = male + female + transgender
-
+3 residence categories × 4 sex categories
 ```
 
+Population values are stored as text in the raw layer so that PBS representations such as `-` remain unchanged.
 
+Ingestion is source-idempotent: rerunning a source replaces that source's existing records instead of creating duplicates.
+
+## 8. Source-to-Warehouse Validation
+
+During development, representative Punjab workbook rows were manually reconciled against the raw DuckDB table, including district, tehsil, special-area, anomaly-area, and end-of-workbook observations.
+
+Regional expansion was then validated through:
+
+```text
+expected geography-block counts
+expected 92-row block structure
+expected raw row counts
+recognized geography classifications
+downstream dbt integrity tests
+national reconciliation
+```
+
+This provides both direct source checks and systematic validation across the complete regional dataset.
+
+## 9. Interpretation of PBS `-`
+
+PBS Table 4 uses the symbol:
+
+```text
+-
+```
+
+in some population cells.
+
+The raw layer preserves this representation exactly.
+
+Before treating it as zero analytically, arithmetic relationships in the published data were tested, including:
+
+```text
+all_sexes = male + female + transgender
+```
 
 and:
 
-
-
 ```text
-
-all\_localities = rural + urban
-
+all_localities = rural + urban
 ```
 
+The relationships remained internally consistent when `-` was interpreted as zero.
 
-
-Rows containing `-` remained internally consistent when `-` was interpreted as zero.
-
-
-
-The staging layer therefore converts:
-
-
+The staging layer therefore transforms:
 
 ```text
-
-\- → 0
-
+- -> 0
 ```
 
+and converts the analytical population fields to numeric values.
 
+The original representation remains preserved in the raw warehouse and PBS workbook.
 
-for analytical use.
+## 10. Staging and Population Integrity
 
+The dbt staging layer standardizes raw values while preserving provenance.
 
-
-The original PBS representation remains available in the raw warehouse.
-
-
-
-\## 9. Population Integrity Tests
-
-
-
-The project uses dbt tests to validate population arithmetic.
-
-
-
-Current checks include:
-
-
-
-\### Sex totals
-
-
-
-For each residence category:
-
-
+Automated tests validate relationships including:
 
 ```text
-
-all\_sexes = male + female + transgender
-
+all_sexes = male + female + transgender
 ```
-
-
-
-\### Residence totals
-
-
-
-For each sex category:
-
-
-
-```text
-
-all\_localities = rural + urban
-
-```
-
-
-
-These tests are run across the full transformed dataset.
-
-
-
-\## 10. Age Standardization
-
-
-
-Raw PBS age labels are classified into analytical types.
-
-
-
-Examples include:
-
-
-
-```text
-
-ALL AGES
-
-→ all\_ages
-
-```
-
-
-
-```text
-
-BELOW 1
-
-→ single\_age
-
-→ age 0
-
-```
-
-
-
-```text
-
-25
-
-→ single\_age
-
-→ age 25
-
-```
-
-
-
-```text
-
-20 -- 24
-
-→ age\_group
-
-→ lower age 20
-
-→ upper age 24
-
-```
-
-
-
-```text
-
-75 \& ABOVE
-
-→ open\_ended\_age\_group
-
-→ lower age 75
-
-```
-
-
-
-The original `age\_label\_raw` value is retained alongside the structured age fields.
-
-
-
-\## 11. Long-Format Transformation
-
-
-
-The original PBS workbook contains 12 separate population columns representing combinations of residence and sex.
-
-
-
-These are transformed into a long format with:
-
-
-
-```text
-
-residence
-
-sex
-
-population
-
-```
-
-
-
-Residence values are:
-
-
-
-\* `all\_localities`
-
-\* `rural`
-
-\* `urban`
-
-
-
-Sex values are:
-
-
-
-\* `all\_sexes`
-
-\* `male`
-
-\* `female`
-
-\* `transgender`
-
-
-
-Each raw census observation therefore expands into 12 analytical rows.
-
-
-
-The Punjab intermediate long-format table contains:
-
-
-
-```text
-
-16,744 × 12 = 200,928 rows
-
-```
-
-
-
-\## 12. Geography Standardization
-
-
-
-PBS geography headings are cleaned conservatively.
-
-
-
-For example:
-
-
-
-```text
-
-ATTOCK DISTRICT
-
-→ ATTOCK
-
-```
-
-
 
 and:
 
-
-
 ```text
-
-FATEH JANG TEHSIL
-
-→ FATEH JANG
-
+all_localities = rural + urban
 ```
 
+These checks are applied across the regional transformed dataset.
 
+Unexpected source text is not silently converted to null; numeric conversion is intentionally strict so previously unseen source values cause an explicit failure.
 
-The project intentionally avoids unnecessary normalization of official names.
+## 11. Age Standardization
 
-
-
-Raw names remain available for provenance.
-
-
-
-\## 13. Stable Geography Keys
-
-
-
-Geography names alone are not treated as reliable identifiers because names may repeat across districts or provinces.
-
-
-
-Stable analytical keys therefore include geographic context.
-
-
+PBS age labels are converted into structured analytical fields while retaining the original source label.
 
 Examples:
 
-
+```text
+ALL AGES
+-> age_type = all_ages
+```
 
 ```text
+BELOW 1
+-> age_type = single_age
+-> age_year = 0
+```
 
+```text
+25
+-> age_type = single_age
+-> age_year = 25
+```
+
+```text
+20 -- 24
+-> age_type = age_group
+-> age_lower = 20
+-> age_upper = 24
+```
+
+```text
+75 & ABOVE
+-> age_type = open_ended_age_group
+-> age_lower = 75
+```
+
+The original `age_label_raw` is retained for provenance and source comparison.
+
+## 12. Long-Format Transformation
+
+The original PBS structure stores population across 12 separate columns.
+
+The intermediate layer converts these columns into:
+
+```text
+residence
+sex
+population
+```
+
+Residence values are:
+
+```text
+all_localities
+rural
+urban
+```
+
+Sex values are:
+
+```text
+all_sexes
+male
+female
+transgender
+```
+
+Each raw census observation therefore expands into 12 long-format rows.
+
+For the complete regional dataset:
+
+```text
+66,884 raw observations × 12
+= 802,608 intermediate long-format rows
+```
+
+This structure allows researchers to filter and aggregate demographic dimensions without manipulating source-specific population columns.
+
+## 13. Geography Standardization
+
+Geographic names are cleaned conservatively.
+
+Examples include:
+
+```text
+ATTOCK DISTRICT
+-> ATTOCK
+```
+
+```text
+FATEH JANG TEHSIL
+-> FATEH JANG
+```
+
+```text
+BADIN TALUKA
+-> BADIN
+```
+
+```text
+YAK MACHH SUB-TEHSIL
+-> YAK MACHH
+```
+
+```text
+SUB-DIVISION CITY
+-> CITY
+```
+
+The project avoids unnecessary normalization of official place names.
+
+Raw geography labels remain available upstream for provenance.
+
+## 14. Stable Geography Keys
+
+Geography names alone are not treated as reliable identifiers because the same name can occur in more than one district or province.
+
+Stable keys therefore include geographic context.
+
+Examples:
+
+```text
 district:Punjab:ATTOCK
-
 ```
 
-
-
 ```text
-
 tehsil:Punjab:ATTOCK:FATEH JANG
-
 ```
 
-
+```text
+taluka:Sindh:BADIN:BADIN
+```
 
 ```text
+sub_tehsil:Balochistan:CHAGAI:YAK MACHH
+```
 
+```text
+protected_area:Khyber Pakhtunkhwa:MALAKAND
+```
+
+```text
 special:Punjab:RAJANPUR:DE-EXCLUDED AREA RAJANPUR
-
 ```
 
+`district_key` represents the district-level parent used by the analytical hierarchy. In most cases this is a district; Malakand Protected Area is represented as a district-equivalent parent.
 
+## 15. Research Geography Dimension
 
-These keys support future national expansion without relying on geography names alone.
-
-
-
-\## 14. Research Geography Dimension
-
-
-
-The `dim\_geography` table contains one row per geographic entity.
-
-
-
-Current Punjab coverage contains:
-
-
+The researcher-facing geography dimension is:
 
 ```text
-
-182 rows
-
+dim_geography
 ```
-
-
-
-Parent-district relationships are tested to ensure each geography references a valid district.
-
-
-
-\## 15. Research Population Fact Table
-
-
-
-The main research population table is:
-
-
-
-```text
-
-fct\_population\_by\_age\_sex\_residence
-
-```
-
-
 
 Its grain is:
 
+```text
+one row per geographic entity
+```
 
+The current dimension contains 727 rows.
+
+| Geography level  |   Count |
+| ---------------- | ------: |
+| District         |     135 |
+| Tehsil           |     306 |
+| Taluka           |     107 |
+| Sub-division     |     134 |
+| Sub-tehsil       |      43 |
+| Protected area   |       1 |
+| De-excluded area |       1 |
+| **Total**        | **727** |
+
+Tests verify geography-key uniqueness and valid parent relationships.
+
+## 16. Research Population Fact Table
+
+The primary researcher-facing fact table is:
 
 ```text
+fct_population_by_age_sex_residence
+```
 
+Its grain is:
+
+```text
 one census year
-
 × one geography
-
 × one mutually exclusive age category
-
 × one residence category
-
 × one sex category
-
 ```
 
-
-
-To avoid double-counting, the table excludes overlapping PBS age aggregates such as:
-
-
+The table deliberately excludes overlapping PBS age summaries such as:
 
 ```text
-
 ALL AGES
-
 20 -- 24
-
 25 -- 29
-
 ```
-
-
 
 It retains:
 
-
-
 ```text
-
 age 0
-
-ages 1–74
-
-75 \& ABOVE
-
+ages 1 through 74
+75 & ABOVE
 ```
 
+This produces 76 mutually exclusive age categories.
 
-
-This results in 76 mutually exclusive age categories.
-
-
-
-For Punjab, the expected fact-table size is:
-
-
+For the complete current geography coverage:
 
 ```text
-
-182 geographies
-
+727 geographies
 × 76 age categories
-
 × 3 residence categories
-
 × 4 sex categories
-
-=
-
-165,984 rows
-
+= 663,024 research fact rows
 ```
 
+This design allows population to be aggregated across age without accidentally double-counting overlapping PBS summary rows.
 
+## 17. Reconciliation to Published Geography Totals
 
-\## 16. Reconciliation to Published Totals
+The 76 mutually exclusive age categories are summed and compared against the corresponding official PBS `ALL AGES` observation.
 
-
-
-The mutually exclusive age categories are summed and compared against the official PBS `ALL AGES` observations.
-
-
-
-The validation is performed for each:
-
-
+The validation is performed for every:
 
 ```text
-
 geography
-
 × residence
-
 × sex
-
 ```
 
-
-
-For the current Punjab dataset this produces:
-
-
+For the current regional coverage this produces:
 
 ```text
-
-182 × 3 × 4 = 2,184
-
+727 × 3 × 4
+= 8,724 geography-level population reconciliations
 ```
 
+The detailed age observations reconcile to their corresponding published `ALL AGES` totals.
 
+## 18. Independent Pakistan-Level Validation
 
-independent population-total comparisons.
+The official Pakistan-level Table 4 workbook is handled separately from the regional analytical pipeline.
 
+It is loaded into the QA-only table:
 
+```text
+raw.pbs_census_2023_table_04_national_qa
+```
 
-The detailed age observations reconcile to the published PBS totals.
+The national workbook contains one `PAKISTAN` block with the same 92 age and summary observations.
 
+Although the spreadsheet contains 21 physical columns, the Table 4 data itself occupies the first 13 columns; the additional columns do not contain the population measures used by the project.
 
+The national source is not added to `dim_geography` or the population fact table.
 
-\## 17. Provenance
+Instead, regional district-level and district-equivalent observations are aggregated and compared against the independently published Pakistan totals.
 
+The reconciliation covers:
 
+```text
+92 age and summary rows
+× 3 residence categories
+× 4 sex categories
+= 1,104 national comparisons
+```
 
-Research-facing population records retain:
+All current regional totals reconcile with the official Pakistan-level Table 4 source.
 
+This provides an independent end-to-end check that the regional ingestion and transformation pipeline preserves the published national population totals.
 
+## 19. Provenance
 
-\* source identifier
+Research-facing population observations retain:
 
-\* source workbook
+```text
+source identifier
+source workbook
+source worksheet
+original Excel row number
+```
 
-\* source worksheet
+This allows an analytical observation to be traced through the transformed warehouse back to its original PBS source row.
 
-\* original Excel row number
+Raw and transformed representations are intentionally kept separate.
 
+## 20. Current Scope and Limitations
 
+The completed methodology currently applies to Pakistan Population and Housing Census 2023 Table 4 for Punjab, Khyber Pakhtunkhwa, Sindh, Balochistan, and Islamabad Capital Territory, with the Pakistan workbook used for independent national validation.
 
-This makes it possible to trace an analytical observation back through the transformation pipeline to the original source workbook.
+The project does not yet include other Census 2023 subject tables, Census 2017 harmonization, historical geography crosswalks, or a formal public research-data release.
 
-
-
-\## 18. Current Scope and Limitations
-
-
-
-The methodology currently applies to:
-
-
-
-\* Population and Housing Census 2023
-
-\* Table 4
-
-\* Punjab
-
-
-
-The project has not yet completed:
-
-
-
-\* other census tables
-
-\* Census 2017 harmonization
-
-\* historical geography reconciliation
-
-\* public research-data releases
-
-
-
-The methodology will be extended as additional source files are incorporated.
-
-
-
+Table 4 should therefore be understood as the first completed, nationally validated analytical component of a broader Pakistan census research warehouse.

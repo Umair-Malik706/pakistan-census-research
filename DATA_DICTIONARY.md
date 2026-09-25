@@ -1,431 +1,313 @@
-\# Data Dictionary
-
-
+# Data Dictionary
 
 This document describes the current researcher-facing datasets produced by the Pakistan Census Research Data Warehouse.
 
+Current coverage includes Census 2023 Table 4 data for:
 
+* Punjab
+* Khyber Pakhtunkhwa
+* Sindh
+* Balochistan
+* Islamabad Capital Territory
 
-Current coverage includes Punjab, Khyber Pakhtunkhwa, Sindh,
-Balochistan, and Islamabad Capital Territory for Census 2023 Table 4.
+The regional pipeline is separately reconciled against the official Pakistan-level Table 4 workbook.
 
+---
 
+## 1. `dim_geography`
 
-\---
+### Purpose
 
+Provides one row per geographic entity represented in the regional Census 2023 Table 4 source workbooks.
 
+### Grain
 
-\## 1. `dim\_geography`
+**One row = one geographic entity.**
 
+The current geography dimension contains **727 geographic entities**:
 
+| Geography level    |   Count |
+| ------------------ | ------: |
+| `district`         |     135 |
+| `tehsil`           |     306 |
+| `taluka`           |     107 |
+| `sub_division`     |     134 |
+| `sub_tehsil`       |      43 |
+| `protected_area`   |       1 |
+| `de_excluded_area` |       1 |
+| **Total**          | **727** |
 
-\### Purpose
+Geography terminology follows the classifications used in the regional PBS source workbooks.
 
+### Columns
 
+| Column            | Description                                                                                                                                           |
+| ----------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `geography_key`   | Stable unique identifier for the geographic entity. Includes province and parent-geography context where required.                                    |
+| `geography_level` | Type of geography represented by the row.                                                                                                             |
+| `geography_name`  | Clean analytical geography name derived conservatively from the PBS source label.                                                                     |
+| `province_name`   | Province or territory containing the geography.                                                                                                       |
+| `district_key`    | Stable identifier for the parent district or district-equivalent geography. For district and protected-area parent rows, this equals `geography_key`. |
+| `district_name`   | Clean analytical name of the parent district or district-equivalent geography.                                                                        |
 
-Provides one row per geographic entity represented in the census source data.
+### Geography levels
 
+Current values of `geography_level` are:
 
+* `district`
+* `tehsil`
+* `taluka`
+* `sub_division`
+* `sub_tehsil`
+* `protected_area`
+* `de_excluded_area`
 
-\### Grain
-
-
-
-\*\*One row = one geographic entity.\*\*
-
-
-
-Current Punjab coverage includes:
-
-
-
-\* 36 districts
-
-\* 145 tehsils
-
-\* 1 De-Excluded Area
-
-\* 182 geographic entities in total
-
-
-
-\### Columns
-
-
-
-| Column            | Description                                                                                                        |
-
-| ----------------- | ------------------------------------------------------------------------------------------------------------------ |
-
-| `geography\_key`   | Stable unique identifier for the geographic entity. Includes province and parent-district context where necessary. |
-
-| `geography\_level` | Type of geography represented by the row. Current values are district
-tehsil
-taluka
-sub_division
-sub_tehsil
-protected_area
-de_excluded_area
-
-| `geography\_name`  | Clean analytical geography name derived from the PBS source.                                                       |
-
-| `province\_name`   | Province or territory containing the geography. Current data contains All provinces including islamabad                                  |
-
-| `district\_key`    | Stable identifier for the parent district. For district rows, this equals `geography\_key`.                         |
-
-| `district\_name`   | Clean analytical name of the parent district.                                                                      |
-
-
-
-\### Example keys
-
-
+### Example keys
 
 District:
 
-
-
 ```text
-
 district:Punjab:ATTOCK
-
 ```
-
-
 
 Tehsil:
 
-
-
 ```text
-
 tehsil:Punjab:ATTOCK:FATEH JANG
-
 ```
 
+Taluka:
 
+```text
+taluka:Sindh:BADIN:BADIN
+```
+
+Sub-division:
+
+```text
+sub_division:Balochistan:CHAGAI:DALBANDIN
+```
+
+Sub-tehsil:
+
+```text
+sub_tehsil:Balochistan:CHAGAI:YAK MACHH
+```
+
+District-equivalent protected area:
+
+```text
+protected_area:Khyber Pakhtunkhwa:MALAKAND
+```
 
 Special geography:
 
-
-
 ```text
-
 special:Punjab:RAJANPUR:DE-EXCLUDED AREA RAJANPUR
-
 ```
 
+### Usage notes
 
+Do not assume that `geography_name` alone is unique.
 
-\### Usage note
+The same local geography name may occur under different districts or provinces. Use `geography_key` when identifying or joining geographic entities.
 
+`district_key` should be interpreted as the key of the district-level parent used by the analytical hierarchy. In most cases this is a district, but PBS also contains a district-equivalent protected area in Khyber Pakhtunkhwa.
 
+---
 
-Do not assume that `geography\_name` alone is unique.
+## 2. `fct_population_by_age_sex_residence`
 
-
-
-For example, a tehsil name may occur in more than one district.
-
-
-
-Use `geography\_key` as the primary geography identifier.
-
-
-
-\---
-
-
-
-\## 2. `fct\_population\_by\_age\_sex\_residence`
-
-
-
-\### Purpose
-
-
+### Purpose
 
 Provides research-ready Census 2023 population observations by geography, age, residence, and sex.
 
+### Grain
 
+**One row = one census year × geography × mutually exclusive age category × residence × sex combination.**
 
-\### Grain
+The current fact table contains:
 
+* 727 geographic entities
+* 76 mutually exclusive age categories
+* 3 residence categories
+* 4 sex categories
 
+This produces **663,024 research observations**.
 
-\*\*One row = one census year × geography × age category × residence × sex combination.\*\*
+### Age coverage
 
+The table contains:
 
+* age 0, represented as `BELOW 1` in the PBS source
+* individual ages 1 through 74
+* `75 & ABOVE`
 
-The table currently contains mutually exclusive age categories:
+PBS five-year summary rows such as `20 -- 24` are excluded from this fact table.
 
+The PBS `ALL AGES` rows are also excluded.
 
+This prevents overlapping age representations from being accidentally summed together.
 
-\* age 0 (`BELOW 1` in the PBS source)
-
-\* ages 1 through 74
-
-\* `75 \& ABOVE`
-
-
-
-Five-year PBS summary groups such as `20 -- 24` are deliberately excluded from this table so that population can be aggregated without double-counting.
-
-
-
-The PBS `ALL AGES` rows are also excluded from this table.
-
-
-
-\### Columns
-
-
+### Columns
 
 | Column              | Description                                                                                              |
-
 | ------------------- | -------------------------------------------------------------------------------------------------------- |
-
-| `census\_year`       | Census reference year. Currently `2023`.                                                                 |
-
-| `geography\_key`     | Stable identifier linking the observation to `dim\_geography`.                                            |
-
-| `district\_key`      | Stable identifier for the parent district.                                                               |
-
-| `province\_name`     | Province or territory containing the observation.                                                        |
-
-| `age\_label\_raw`     | Original PBS age label retained for provenance.                                                          |
-
-| `age\_type`          | Analytical age classification. Current values in this table are `single\_age` and `open\_ended\_age\_group`. |
-
-| `age\_year`          | Exact single year of age. Age 0 represents PBS `BELOW 1`. Null for `75 \& ABOVE`.                         |
-
-| `age\_lower`         | Lower bound of the represented age category.                                                             |
-
-| `age\_upper`         | Upper bound of the represented age category. Null for `75 \& ABOVE`.                                      |
-
-| `residence`         | Residence classification: `all\_localities`, `rural`, or `urban`.                                         |
-
-| `sex`               | Sex classification: `all\_sexes`, `male`, `female`, or `transgender`.                                     |
-
+| `census_year`       | Census reference year. Currently `2023`.                                                                 |
+| `geography_key`     | Stable identifier linking the observation to `dim_geography`.                                            |
+| `district_key`      | Stable identifier for the parent district or district-equivalent geography.                              |
+| `province_name`     | Province or territory containing the observation.                                                        |
+| `age_label_raw`     | Original PBS age label retained for provenance.                                                          |
+| `age_type`          | Analytical age classification. Current values in this table are `single_age` and `open_ended_age_group`. |
+| `age_year`          | Exact single year of age. Age 0 represents PBS `BELOW 1`. Null for `75 & ABOVE`.                         |
+| `age_lower`         | Lower bound of the represented age category.                                                             |
+| `age_upper`         | Upper bound of the represented age category. Null for `75 & ABOVE`.                                      |
+| `residence`         | Residence classification: `all_localities`, `rural`, or `urban`.                                         |
+| `sex`               | Sex classification: `all_sexes`, `male`, `female`, or `transgender`.                                     |
 | `population`        | Population count for the represented combination.                                                        |
+| `source_id`         | Identifier linking the observation to the project source manifest.                                       |
+| `source_file`       | Original PBS workbook filename.                                                                          |
+| `source_sheet`      | Original PBS worksheet name.                                                                             |
+| `source_row_number` | Original Excel row number from which the observation was derived.                                        |
 
-| `source\_id`         | Identifier linking the observation to the project source manifest.                                       |
+---
 
-| `source\_file`       | Original PBS workbook filename.                                                                          |
-
-| `source\_sheet`      | Original PBS worksheet name.                                                                             |
-
-| `source\_row\_number` | Original Excel row number from which the observation was derived.                                        |
-
-
-
-\---
-
-
-
-\## Age Representation
-
-
+## Age Representation
 
 PBS Table 4 contains overlapping age representations.
 
-
-
-For example, the source contains both:
-
-
+For example, it publishes individual ages:
 
 ```text
-
 20
-
 21
-
 22
-
 23
-
 24
-
 ```
 
-
-
-and:
-
-
+as well as the summary group:
 
 ```text
-
 20 -- 24
-
 ```
 
+Adding both representations would count the same population twice.
 
+For this reason, `fct_population_by_age_sex_residence` contains only mutually exclusive age categories.
 
-Using both at the same time would double-count population.
+The upstream staging and intermediate layers continue to preserve the official PBS summary rows for validation and source fidelity.
 
+---
 
-
-For this reason, `fct\_population\_by\_age\_sex\_residence` retains only non-overlapping age categories.
-
-
-
-Researchers who require official PBS five-year age-group totals should use the upstream source-preserving models or a future summary mart designed specifically for those published aggregates.
-
-
-
-\---
-
-
-
-\## Residence Categories
-
-
+## Residence Categories
 
 `residence` can take three values:
 
-
-
 | Value            | Meaning                                                     |
-
 | ---------------- | ----------------------------------------------------------- |
-
-| `all\_localities` | Official PBS population total across rural and urban areas. |
-
+| `all_localities` | Official PBS population total across rural and urban areas. |
 | `rural`          | Rural population.                                           |
-
 | `urban`          | Urban population.                                           |
 
-
-
-The project validates that, where applicable:
-
-
+The pipeline validates the relationship:
 
 ```text
-
-all\_localities = rural + urban
-
+all_localities = rural + urban
 ```
 
+for each applicable age, geography, and sex combination.
 
+---
 
-\---
-
-
-
-\## Sex Categories
-
-
+## Sex Categories
 
 `sex` can take four values:
 
+| Value         | Meaning                                                            |
+| ------------- | ------------------------------------------------------------------ |
+| `all_sexes`   | Official PBS population total across the published sex categories. |
+| `male`        | Male population.                                                   |
+| `female`      | Female population.                                                 |
+| `transgender` | Transgender population as reported by PBS.                         |
 
-
-| Value         | Meaning                                              |
-
-| ------------- | ---------------------------------------------------- |
-
-| `all\_sexes`   | Official PBS population total across sex categories. |
-
-| `male`        | Male population.                                     |
-
-| `female`      | Female population.                                   |
-
-| `transgender` | Transgender population as reported by PBS.           |
-
-
-
-The project validates that:
-
-
+The pipeline validates:
 
 ```text
-
-all\_sexes = male + female + transgender
-
+all_sexes = male + female + transgender
 ```
 
+for each applicable age, geography, and residence combination.
 
+---
 
-\---
-
-
-
-\## Interpretation of PBS `-`
-
-
+## Interpretation of PBS `-`
 
 PBS Table 4 contains the symbol `-` in some population cells.
 
+The raw ingestion layer preserves this value exactly as published.
 
+During source validation, rows containing `-` were tested against the arithmetic relationships between:
 
-The raw ingestion layer preserves the symbol exactly as published.
+* sex categories
+* rural and urban population
+* all-localities totals
 
+The relationships remained internally consistent when `-` was interpreted as zero.
 
+The analytical staging layer therefore converts:
 
-For the analytical staging layer, `-` is interpreted as `0` after validation showed that population arithmetic remained internally consistent when the symbol was treated as zero.
+```text
+- -> 0
+```
 
+while the original representation remains preserved in the raw warehouse and source workbook.
 
+---
 
-The original source representation remains available in the raw warehouse and original PBS workbook.
-
-
-
-\---
-
-
-
-\## Provenance
-
-
+## Provenance
 
 Research observations retain:
 
+* source identifier
+* source workbook
+* source worksheet
+* original Excel row number
 
+This allows an analytical observation to be traced back through the transformation pipeline to the corresponding PBS source row.
 
-\* source identifier
+Raw source values are kept separate from cleaned analytical values.
 
-\* source workbook
+---
 
-\* source worksheet
+## National Validation
 
-\* original Excel row number
+The Pakistan-level Table 4 workbook is maintained as a separate quality-assurance source and is not mixed into the researcher-facing regional fact table.
 
+Regional district-level and district-equivalent observations are aggregated and compared with the independently published Pakistan totals across:
 
+```text
+92 age and summary rows
+× 3 residence categories
+× 4 sex categories
+= 1,104 comparisons
+```
 
-This allows transformed observations to be traced back to the original PBS source.
+All current regional totals reconcile with the official Pakistan-level source.
 
+---
 
+## Current Limitations
 
-\---
-
-
-
-\## Current Limitations
-
-
-
-The current release is not yet a complete national census dataset.
-
-
+This project does **not** yet represent the full Pakistan census.
 
 Current limitations include:
 
+* Census 2023 only
+* Table 4 only
+* no Census 2017 harmonization
+* no historical geography crosswalk between census years
+* no additional Census 2023 subject tables yet
+* research datasets have not yet been packaged as a formal public release
 
-
-\* Census 2023 only
-
-\* Table 4 only
-
-\* no 2017 harmonization yet
-
-\* no nationally harmonized geography history yet
-
-
-
-These limitations will be updated as additional source files are incorporated.
-
-
-
+The current Table 4 pipeline should therefore be understood as the first completed analytical component of a broader census research warehouse.

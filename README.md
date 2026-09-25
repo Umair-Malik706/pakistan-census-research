@@ -1,292 +1,195 @@
-\# Pakistan Census Research Data Warehouse
+# Pakistan Census Research Data Warehouse
 
+An open data-engineering project that transforms official Pakistan Bureau of Statistics (PBS) census workbooks into documented, validated, research-ready datasets.
 
-
-An open, reproducible data-engineering project that transforms official Pakistan Bureau of Statistics census data into documented, validated, research-ready datasets.
-
+The project is designed to make Pakistan census data easier to analyze while preserving a clear audit trail back to the original PBS sources.
 
 ## Current Scope
 
 The project currently processes:
 
-- Pakistan Population and Housing Census 2023
-- Table 4: Population by single year age, sex and rural/urban
-- Punjab
-- Khyber Pakhtunkhwa
-- Sindh
-- Balochistan
-- Islamabad Capital Territory
+* Pakistan Population and Housing Census 2023
+* Table 4: Population by single year age, sex and rural/urban
+* Punjab
+* Khyber Pakhtunkhwa
+* Sindh
+* Balochistan
+* Islamabad Capital Territory
 
-The regional pipeline is independently reconciled against the official
-Pakistan-level Table 4 workbook.
+A separate Pakistan-level Table 4 workbook is retained as an independent quality-assurance source.
 
-
-
-\## Project Goals
-
-
+## Project Goals
 
 The project aims to make official Pakistan census data easier to use for:
 
+* academic research
+* policy analysis
+* journalism
+* demographic analysis
+* reproducible quantitative research
 
+The objective is not simply to clean spreadsheets. The pipeline preserves source provenance, standardizes inconsistent source structures, creates researcher-friendly analytical tables, and validates transformed data against official PBS totals.
 
-\* academic research
-
-\* policy analysis
-
-\* journalism
-
-\* demographic analysis
-
-\* reproducible quantitative research
-
-
-
-The focus is not only on cleaning data, but also on preserving source provenance and validating transformed data against official PBS totals.
-
-
-
-\## Technology
-
-
+## Technology
 
 The project currently uses:
 
+* Python for source acquisition, workbook profiling, and ingestion
+* DuckDB as the local analytical warehouse
+* dbt Core for transformation, testing, and documentation
+* Git for version control
 
+The project is built using free and publicly available tools.
 
-\* Python for source ingestion and structural parsing
-
-\* DuckDB as the local analytical database
-
-\* dbt Core through the command line for transformation, testing, and documentation
-
-\* Git for version control
-
-
-
-The project is designed to use free and publicly available tools.
-
-
-
-\## Data Flow
-
-
+## Data Flow
 
 ```text
-
 Pakistan Bureau of Statistics
-
-&#x20;       ↓
-
-Source manifest
-
-&#x20;       ↓
-
-Raw Excel workbook
-
-&#x20;       ↓
-
-Python ingestion
-
-&#x20;       ↓
-
+        |
+        v
+Source manifest and raw workbooks
+        |
+        v
+Python ingestion and structural validation
+        |
+        v
 DuckDB raw schema
-
-&#x20;       ↓
-
-dbt staging
-
-&#x20;       ↓
-
+        |
+        v
+dbt staging models
+        |
+        v
 dbt intermediate models
-
-&#x20;       ↓
-
+        |
+        v
 Research marts
-
+        |
+        v
+National reconciliation checks
 ```
 
+## Current Research Models
 
+### `dim_geography`
 
-\## Current Research Models
+One row per geographic entity represented in the regional census sources.
 
+The current pipeline accommodates PBS geography types including:
 
+* district
+* tehsil
+* taluka
+* sub-division
+* sub-tehsil
+* protected area
+* de-excluded area
 
-\### `dim\_geography`
+Stable geography keys include the relevant province and parent geography context so that repeated place names do not become ambiguous.
 
+### `fct_population_by_age_sex_residence`
 
+Research-ready population observations organized by:
 
-One row per geographic entity represented in the census source.
+* census year
+* geography
+* age
+* residence
+* sex
+* population
 
+The fact table contains mutually exclusive age categories so that researchers can aggregate population without double-counting overlapping PBS five-year age groups or `ALL AGES` totals.
 
+Original PBS age labels and source provenance fields are retained alongside the analytical fields.
 
-Includes:
+## Data Quality
 
+Data validation is a core part of the project.
 
+The dbt pipeline currently tests:
 
-\* province
+* source-row uniqueness
+* valid geography levels
+* valid age classifications
+* geography-key consistency
+* parent-geography relationships
+* expected residence and sex combinations
+* sex totals
+* rural and urban totals
+* detailed age totals against official `ALL AGES` values
+* regional totals against the independently published Pakistan-level workbook
 
-\* district
+For the national reconciliation, the regional pipeline is compared with the official Pakistan Table 4 source across:
 
-\* geography level
+```text
+92 age and summary rows
+x 3 residence categories
+x 4 sex categories
+= 1,104 comparisons
+```
 
-\* geography name
+All current comparisons reconcile with the official Pakistan-level source.
 
-\* stable geography keys
-
-
-
-\### `fct\_population\_by\_age\_sex\_residence`
-
-
-
-Research-ready population observations by:
-
-
-
-\* census year
-
-\* geography
-
-\* age
-
-\* residence
-
-\* sex
-
-
-
-The table uses mutually exclusive age categories so that population can be aggregated without double-counting overlapping PBS age-group totals.
+Raw PBS values are preserved separately from analytical transformations.
 
 ## Documentation
 
-- [Data Dictionary](DATA_DICTIONARY.md)
-- [Methodology](METHODOLOGY.md)
+* [Data Dictionary](DATA_DICTIONARY.md)
+* [Methodology](METHODOLOGY.md)
 
-
-\## Data Quality
-
-
-
-The pipeline currently validates:
-
-
-
-\* source-row uniqueness
-
-\* valid geography levels
-
-\* valid age classifications
-
-\* sex totals
-
-\* rural + urban totals
-
-\* geography-key consistency
-
-\* parent-district relationships
-
-\* expected demographic combinations
-
-\* population totals reconstructed from single-year age observations
-
-
-
-Raw PBS source values are preserved separately from analytical transformations.
-
-
-
-\## Repository Structure
-
-
+Example analytical queries are available under:
 
 ```text
-
-pakistan-census-research/
-
-│
-
-├── data/
-
-│   └── raw/
-
-│
-
-├── dbt/
-
-│   ├── analyses/
-
-│   ├── models/
-
-│   │   ├── staging/
-
-│   │   ├── intermediate/
-
-│   │   └── marts/
-
-│   └── tests/
-
-│
-
-├── ingestion/
-
-├── metadata/
-
-├── warehouse/
-
-├── requirements-lock.txt
-
-└── README.md
-
+dbt/analyses/examples/
 ```
 
+## Repository Structure
 
+```text
+pakistan-census-research/
+|
+|-- data/
+|   `-- raw/
+|
+|-- dbt/
+|   |-- analyses/
+|   |-- models/
+|   |   |-- staging/
+|   |   |-- intermediate/
+|   |   `-- marts/
+|   `-- tests/
+|
+|-- ingestion/
+|-- metadata/
+|-- warehouse/
+|
+|-- DATA_DICTIONARY.md
+|-- METHODOLOGY.md
+|-- README.md
+`-- requirements-lock.txt
+```
 
-\## Source Data
-
-
+## Source Data
 
 Primary source:
 
+**Pakistan Bureau of Statistics - Population and Housing Census 2023**
 
+Original PBS workbooks are not manually modified during ingestion.
 
-\*\*Pakistan Bureau of Statistics — Population and Housing Census 2023\*\*
+Raw data files and the generated DuckDB warehouse are not committed to the repository. Source locations, source identifiers, and other provenance information are maintained through project metadata.
 
+The national Table 4 workbook is maintained separately from the regional analytical pipeline and is used as an independent validation source.
 
+## Project Status
 
-The original source workbooks are not modified during ingestion.
+**Census 2023 Table 4 v1: nationally integrated and validated.**
 
+The current pipeline covers the available regional Table 4 sources used in the project and successfully reconciles their population totals against the official Pakistan-level workbook.
 
+Potential future work includes:
 
-Raw data files are not committed to this repository. Source locations and provenance are maintained through project metadata so the dataset can be reproduced from the official sources.
-
-
-
-\## Status
-
-
-
-The project is under active development.
-
-
-
-Current milestone:
-
-
-
-Current milestone:
-
-**Pakistan Census 2023 Table 4 pipeline — nationally integrated and validated**
-Regional totals are reconciled against the official Pakistan-level workbook
-across all age, residence, and sex combinations.
-
-\* produce downloadable research datasets
-
-\* publish dbt documentation
-
-\* create reproducible releases
-
-\* later incorporate Census 2017 for cross-census analysis
-
-
-
+* publishing downloadable research datasets
+* publishing dbt documentation
+* adding additional Census 2023 tables
+* incorporating Census 2017 for cross-census analysis
+* developing geography harmonization for comparisons across census years
