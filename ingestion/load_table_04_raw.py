@@ -16,6 +16,7 @@ WAREHOUSE_PATH = PROJECT_ROOT / "warehouse" / "pakistan_census.duckdb"
 TARGET_SOURCE_IDS = {
     "pbs_2023_t04_punjab_districts",
     "pbs_2023_t04_kp_districts",
+    "pbs_2023_t04_sindh_districts",
 }
 
 
@@ -33,6 +34,9 @@ def classify_geography(heading):
 
     if heading_upper.endswith(" DISTRICT"):
         return "district"
+
+    if heading_upper.endswith(" TALUKA"):
+    	return "taluka"
 
     if heading_upper.endswith(" TEHSIL"):
         return "tehsil"
@@ -156,6 +160,7 @@ for source in sources:
 
         elif geography_level in {
             "tehsil",
+	        "taluka",
             "sub_division",
             "de_excluded_area",
         }:

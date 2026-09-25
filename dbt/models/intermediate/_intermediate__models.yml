@@ -116,6 +116,7 @@ models:
                 values:
                   - district
                   - tehsil
+                  - taluka
                   - protected_area
                   - sub_division
                   - de_excluded_area

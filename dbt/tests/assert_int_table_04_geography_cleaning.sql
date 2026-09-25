@@ -25,6 +25,11 @@ where
         geography_level = 'tehsil'
         and geography_name like '% TEHSIL'
     )
+
+    or (
+        geography_level = 'taluka'
+        and geography_name like '% TALUKA'
+    )
     
     or (
     	geography_level = 'sub_division'

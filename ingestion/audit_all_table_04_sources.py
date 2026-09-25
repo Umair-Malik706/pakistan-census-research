@@ -112,7 +112,10 @@ for source in manifest:
             1 for _, heading in headings
             if heading.upper().endswith(" TEHSIL")
         )
-
+        taluka_count = sum(
+            1 for _, heading in headings
+            if heading.upper().endswith(" TALUKA")
+        )
         subdivision_count = sum(
             1 for _, heading in headings
             if heading.upper().endswith(" SUB-DIVISION")
@@ -132,12 +135,14 @@ for source in manifest:
                     " TEHSIL",
                     " SUB-DIVISION",
                     " PROTECTED AREA",
+                    " TALUKA"
                 )
             )
         ]
 
         print(f"DISTRICTS:       {district_count}")
         print(f"TEHSILS:         {tehsil_count}")
+        print(f"TALUKAS:         {taluka_count}")
         print(f"SUB-DIVISIONS:   {subdivision_count}")
         print(f"PROTECTED AREAS: {protected_area_count}")
         print(f"UNKNOWN:         {len(other_headings)}")
@@ -166,7 +171,7 @@ for source in manifest:
                 current_parent = heading
 
             elif heading_upper.endswith(
-                (" TEHSIL", " SUB-DIVISION")
+                (" TEHSIL", " TALUKA", " SUB-DIVISION")
             ):
                 print(f"  {current_parent} -> {heading}")
 
