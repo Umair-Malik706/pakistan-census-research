@@ -27,6 +27,3 @@ models:
     marts:
       research:
         +materialized: table
-
-      policy:
-        +materialized: table
