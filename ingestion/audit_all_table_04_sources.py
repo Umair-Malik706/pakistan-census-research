@@ -110,15 +110,32 @@ for source in manifest:
 
         tehsil_count = sum(
             1 for _, heading in headings
-            if heading.upper().endswith(" TEHSIL")
+            if (
+                heading.upper().endswith(" TEHSIL")
+                and not heading.upper().startswith("SUB-DIVISION ")
+                and not heading.upper().startswith("SUB-TEHSIL ")
         )
+    )
+
         taluka_count = sum(
             1 for _, heading in headings
             if heading.upper().endswith(" TALUKA")
         )
+
         subdivision_count = sum(
             1 for _, heading in headings
-            if heading.upper().endswith(" SUB-DIVISION")
+            if (
+                heading.upper().endswith(" SUB-DIVISION")
+                or heading.upper().startswith("SUB-DIVISION ")
+            )
+        )
+
+        sub_tehsil_count = sum(
+            1 for _, heading in headings
+            if (
+                heading.upper().endswith(" SUB-TEHSIL")
+                or heading.upper().startswith("SUB-TEHSIL ")
+            )
         )
 
         protected_area_count = sum(
@@ -129,14 +146,15 @@ for source in manifest:
         other_headings = [
             heading
             for _, heading in headings
-            if not heading.upper().endswith(
-                (
-                    " DISTRICT",
-                    " TEHSIL",
-                    " SUB-DIVISION",
-                    " PROTECTED AREA",
-                    " TALUKA"
-                )
+            if not (
+                heading.upper().endswith(" DISTRICT")
+                or heading.upper().endswith(" TEHSIL")
+                or heading.upper().endswith(" TALUKA")
+                or heading.upper().endswith(" SUB-DIVISION")
+                or heading.upper().startswith("SUB-DIVISION ")
+                or heading.upper().endswith(" SUB-TEHSIL")
+                or heading.upper().startswith("SUB-TEHSIL ")
+                or heading.upper().endswith(" PROTECTED AREA")
             )
         ]
 
@@ -144,6 +162,7 @@ for source in manifest:
         print(f"TEHSILS:         {tehsil_count}")
         print(f"TALUKAS:         {taluka_count}")
         print(f"SUB-DIVISIONS:   {subdivision_count}")
+        print(f"SUB-TEHSILS:     {sub_tehsil_count}")
         print(f"PROTECTED AREAS: {protected_area_count}")
         print(f"UNKNOWN:         {len(other_headings)}")
 
@@ -170,8 +189,17 @@ for source in manifest:
             ):
                 current_parent = heading
 
-            elif heading_upper.endswith(
-                (" TEHSIL", " TALUKA", " SUB-DIVISION")
+            elif (
+                heading_upper.endswith(
+                    (
+                        " TEHSIL",
+                        " TALUKA",
+                        " SUB-DIVISION",
+                        " SUB-TEHSIL"
+                    )
+                )
+                or heading_upper.startswith("SUB-DIVISION ")
+                or heading_upper.startswith("SUB-TEHSIL ")
             ):
                 print(f"  {current_parent} -> {heading}")
 

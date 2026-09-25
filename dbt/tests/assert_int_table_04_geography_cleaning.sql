@@ -37,6 +37,14 @@ where
     )
 
     or (
+        geography_level = 'sub_tehsil'
+        and (
+            geography_name like '% SUB-TEHSIL'
+            or geography_name like 'SUB-TEHSIL %'
+        )
+    )
+
+    or (
     	geography_level = 'protected_area'
     	and geography_name like '% PROTECTED AREA'
     )

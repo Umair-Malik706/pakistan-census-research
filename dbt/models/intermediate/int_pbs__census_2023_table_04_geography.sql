@@ -19,6 +19,9 @@ cleaned_geography as (
             
             when source_id = 'pbs_2023_t04_sindh_districts'
                 then 'Sindh'
+            
+            when source_id = 'pbs_2023_t04_balochistan_districts'
+                then 'Balochistan'
         end as province_name,
 
         case
@@ -32,7 +35,30 @@ cleaned_geography as (
                 then regexp_replace(geography_name_raw, ' TALUKA$', '')
 
             when geography_level = 'sub_division'
-                then regexp_replace(geography_name_raw, ' SUB-DIVISION$', '')
+                then regexp_replace(
+                    regexp_replace(
+                        regexp_replace(
+                            geography_name_raw,
+                            '^SUB-DIVISION ',
+                            ''
+                        ),
+                        ' SUB-DIVISION$',
+                        ''
+                    ),
+                    ' TEHSIL$',
+                    ''
+                )
+
+            when geography_level = 'sub_tehsil'
+                then regexp_replace(
+                    regexp_replace(
+                        geography_name_raw,
+                        '^SUB-TEHSIL ',
+                        ''
+                    ),
+                    ' SUB-TEHSIL$',
+                    ''
+                )
 
             when geography_level = 'protected_area'
                 then regexp_replace(geography_name_raw, ' PROTECTED AREA$', '')
@@ -113,6 +139,15 @@ with_keys as (
             when geography_level = 'sub_division'
                 then
                     'sub_division:'
+                    || province_name
+                    || ':'
+                    || district_name
+                    || ':'
+                    || geography_name
+            
+            when geography_level = 'sub_tehsil'
+                then
+                    'sub_tehsil:'
                     || province_name
                     || ':'
                     || district_name

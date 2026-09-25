@@ -17,6 +17,7 @@ TARGET_SOURCE_IDS = {
     "pbs_2023_t04_punjab_districts",
     "pbs_2023_t04_kp_districts",
     "pbs_2023_t04_sindh_districts",
+    "pbs_2023_t04_balochistan_districts",
 }
 
 
@@ -35,14 +36,23 @@ def classify_geography(heading):
     if heading_upper.endswith(" DISTRICT"):
         return "district"
 
-    if heading_upper.endswith(" TALUKA"):
-    	return "taluka"
+    if (
+        heading_upper.endswith(" SUB-DIVISION")
+        or heading_upper.startswith("SUB-DIVISION ")
+    ):
+        return "sub_division"
+
+    if (
+        heading_upper.endswith(" SUB-TEHSIL")
+        or heading_upper.startswith("SUB-TEHSIL ")
+    ):
+        return "sub_tehsil"
 
     if heading_upper.endswith(" TEHSIL"):
         return "tehsil"
 
-    if heading_upper.endswith(" SUB-DIVISION"):
-        return "sub_division"
+    if heading_upper.endswith(" TALUKA"):
+        return "taluka"
 
     if heading_upper.endswith(" PROTECTED AREA"):
         return "protected_area"
@@ -162,6 +172,7 @@ for source in sources:
             "tehsil",
 	        "taluka",
             "sub_division",
+            "sub_tehsil",
             "de_excluded_area",
         }:
             if current_parent is None:

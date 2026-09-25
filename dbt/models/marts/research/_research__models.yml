@@ -30,6 +30,7 @@ models:
                   - taluka
                   - protected_area
                   - sub_division
+                  - sub_tehsil
                   - de_excluded_area
 
       - name: geography_name
