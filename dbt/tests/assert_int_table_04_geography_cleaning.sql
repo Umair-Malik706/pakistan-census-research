@@ -25,5 +25,15 @@ where
         geography_level = 'tehsil'
         and geography_name like '% TEHSIL'
     )
+    
+    or (
+    	geography_level = 'sub_division'
+    	and geography_name like '% SUB-DIVISION'
+    )
+
+    or (
+    	geography_level = 'protected_area'
+    	and geography_name like '% PROTECTED AREA'
+    )
 
     or district_name like '% DISTRICT'

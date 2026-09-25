@@ -1,24 +1,23 @@
-with district_keys as (
+with valid_parent_keys as (
 
     select geography_key
     from {{ ref('dim_geography') }}
-    where geography_level = 'district'
+
+    where geography_level in (
+        'district',
+        'protected_area'
+    )
 
 ),
 
 invalid_parents as (
 
-    select
-        geography_key,
-        geography_level,
-        geography_name,
-        district_key
-
+    select *
     from {{ ref('dim_geography') }}
 
     where district_key not in (
         select geography_key
-        from district_keys
+        from valid_parent_keys
     )
 
 )

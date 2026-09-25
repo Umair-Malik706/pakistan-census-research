@@ -1,4 +1,4 @@
-with long_format as (
+with source as (
 
     select *
     from {{ ref('int_pbs__census_2023_table_04_long') }}
@@ -8,80 +8,96 @@ with long_format as (
 cleaned_geography as (
 
     select
-        source_id,
-        source_file,
-        source_sheet,
-        source_row_number,
+        *,
 
-        geography_name_raw,
-        geography_level,
-        district_name_raw,
-	
-	case
+        case
             when source_id = 'pbs_2023_t04_punjab_districts'
                 then 'Punjab'
+
+            when source_id = 'pbs_2023_t04_kp_districts'
+                then 'Khyber Pakhtunkhwa'
         end as province_name,
 
         case
             when geography_level = 'district'
-                then regexp_replace(
-                    geography_name_raw,
-                    ' DISTRICT$',
-                    ''
-                )
+                then regexp_replace(geography_name_raw, ' DISTRICT$', '')
 
             when geography_level = 'tehsil'
-                then regexp_replace(
-                    geography_name_raw,
-                    ' TEHSIL$',
-                    ''
-                )
+                then regexp_replace(geography_name_raw, ' TEHSIL$', '')
+
+            when geography_level = 'sub_division'
+                then regexp_replace(geography_name_raw, ' SUB-DIVISION$', '')
+
+            when geography_level = 'protected_area'
+                then regexp_replace(geography_name_raw, ' PROTECTED AREA$', '')
+
+            when geography_level = 'de_excluded_area'
+                then geography_name_raw
 
             else geography_name_raw
         end as geography_name,
 
-        regexp_replace(
-            district_name_raw,
-            ' DISTRICT$',
-            ''
-        ) as district_name,
+        case
+            when district_name_raw like '% DISTRICT'
+                then regexp_replace(district_name_raw, ' DISTRICT$', '')
 
-        age_label_raw,
-        age_type,
-        age_year,
-        age_lower,
-        age_upper,
+            when district_name_raw like '% PROTECTED AREA'
+                then regexp_replace(district_name_raw, ' PROTECTED AREA$', '')
 
-        residence,
-        sex,
-        population
+            else district_name_raw
+        end as district_name
 
-    from long_format
+    from source
 
 ),
 
-added_geography_key as (
+with_keys as (
 
     select
         *,
 
-        'district:'
-        || province_name
-        || ':'
-        || district_name
-        as district_key,
-        
-	case
+        case
+            when district_name_raw like '% PROTECTED AREA'
+                then
+                    'protected_area:'
+                    || province_name
+                    || ':'
+                    || district_name
+
+            else
+                'district:'
+                || province_name
+                || ':'
+                || district_name
+        end as district_key,
+
+        case
             when geography_level = 'district'
                 then
                     'district:'
                     || province_name
                     || ':'
-                    || district_name
+                    || geography_name
+
+            when geography_level = 'protected_area'
+                then
+                    'protected_area:'
+                    || province_name
+                    || ':'
+                    || geography_name
 
             when geography_level = 'tehsil'
                 then
                     'tehsil:'
+                    || province_name
+                    || ':'
+                    || district_name
+                    || ':'
+                    || geography_name
+
+            when geography_level = 'sub_division'
+                then
+                    'sub_division:'
                     || province_name
                     || ':'
                     || district_name
@@ -96,11 +112,11 @@ added_geography_key as (
                     || district_name
                     || ':'
                     || geography_name
-        end as geography_key,
+        end as geography_key
 
     from cleaned_geography
 
 )
 
 select *
-from added_geography_key
+from with_keys

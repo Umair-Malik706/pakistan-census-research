@@ -1,4 +1,5 @@
 from pathlib import Path
+import csv
 
 import duckdb
 from openpyxl import load_workbook
@@ -6,187 +7,231 @@ from openpyxl import load_workbook
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 
-DATABASE_PATH = (
-    PROJECT_ROOT
-    / "warehouse"
-    / "pakistan_census.duckdb"
-)
-
-FILE_PATH = (
-    PROJECT_ROOT
-    / "data"
-    / "raw"
-    / "pbs"
-    / "census_2023"
-    / "table_04"
-    / "table_4_punjab_districts.xlsx"
-)
-
-SOURCE_ID = "pbs_2023_t04_punjab_districts"
-SOURCE_FILE = "table_4_punjab_districts.xlsx"
-SOURCE_SHEET = "punjab"
-
-EXPECTED_RECORD_COUNT = 16744
+MANIFEST_PATH = PROJECT_ROOT / "metadata" / "source_manifest.csv"
+RAW_DIR = PROJECT_ROOT / "data" / "raw" / "pbs" / "census_2023" / "table_04"
+WAREHOUSE_PATH = PROJECT_ROOT / "warehouse" / "pakistan_census.duckdb"
 
 
-def is_blank(value):
-    return value is None or value == ""
+# Only load the regions we have explicitly validated so far.
+TARGET_SOURCE_IDS = {
+    "pbs_2023_t04_punjab_districts",
+    "pbs_2023_t04_kp_districts",
+}
 
 
-def to_raw_text(value):
+def find_file(filename):
+    matches = list(RAW_DIR.rglob(filename))
+
+    if not matches:
+        raise FileNotFoundError(f"Could not find {filename}")
+
+    return matches[0]
+
+
+def classify_geography(heading):
+    heading_upper = heading.upper()
+
+    if heading_upper.endswith(" DISTRICT"):
+        return "district"
+
+    if heading_upper.endswith(" TEHSIL"):
+        return "tehsil"
+
+    if heading_upper.endswith(" SUB-DIVISION"):
+        return "sub_division"
+
+    if heading_upper.endswith(" PROTECTED AREA"):
+        return "protected_area"
+
+    if heading_upper.startswith("DE-EXCLUDED AREA"):
+        return "de_excluded_area"
+
+    raise ValueError(f"Unknown geography heading: {heading}")
+
+
+def clean_cell(value):
     if value is None:
         return None
+
+    if isinstance(value, float) and value.is_integer():
+        return str(int(value))
 
     return str(value).strip()
 
 
-def classify_geography(text):
-    upper_text = text.upper()
-
-    if upper_text.endswith(" DISTRICT"):
-        return "district"
-
-    if upper_text.endswith(" TEHSIL"):
-        return "tehsil"
-
-    if upper_text == "DE-EXCLUDED AREA RAJANPUR":
-        return "de_excluded_area"
-
-    return None
+with MANIFEST_PATH.open("r", encoding="utf-8-sig", newline="") as file:
+    manifest = list(csv.DictReader(file))
 
 
-def extract_records():
+sources = [
+    row
+    for row in manifest
+    if row["source_id"].strip() in TARGET_SOURCE_IDS
+]
+
+
+connection = duckdb.connect(str(WAREHOUSE_PATH))
+
+connection.execute("create schema if not exists raw")
+
+connection.execute("""
+    create table if not exists raw.pbs_census_2023_table_04 (
+        source_id varchar,
+        source_file varchar,
+        source_sheet varchar,
+        source_row_number integer,
+
+        geography_name_raw varchar,
+        geography_level varchar,
+        district_name_raw varchar,
+
+        age_label_raw varchar,
+
+        all_all_sexes_raw varchar,
+        all_male_raw varchar,
+        all_female_raw varchar,
+        all_transgender_raw varchar,
+
+        rural_all_sexes_raw varchar,
+        rural_male_raw varchar,
+        rural_female_raw varchar,
+        rural_transgender_raw varchar,
+
+        urban_all_sexes_raw varchar,
+        urban_male_raw varchar,
+        urban_female_raw varchar,
+        urban_transgender_raw varchar
+    )
+""")
+
+
+for source in sources:
+
+    source_id = source["source_id"].strip()
+    filename = source["local_filename"].strip()
+    region = source["region"].strip()
+
+    path = find_file(filename)
+
+    print("\n" + "=" * 80)
+    print(f"LOADING: {region}")
+    print(f"SOURCE:  {source_id}")
+    print(f"FILE:    {filename}")
+
     workbook = load_workbook(
-        FILE_PATH,
+        path,
         read_only=True,
-        data_only=True,
+        data_only=True
     )
 
-    worksheet = workbook[SOURCE_SHEET]
+    # Current validated workbooks each contain one relevant worksheet.
+    sheet_name = workbook.sheetnames[0]
+    worksheet = workbook[sheet_name]
+
+    rows = list(worksheet.iter_rows(values_only=True))
 
     records = []
 
-    current_geography = None
-    current_geography_level = None
-    current_district = None
+    current_parent = None
 
-    for row_number, row in enumerate(
-        worksheet.iter_rows(values_only=True),
-        start=1,
-    ):
-        values = list(row)
+    for index in range(len(rows) - 1):
 
-        first_value = values[0]
+        current_first_cell = rows[index][0]
+        next_first_cell = rows[index + 1][0]
 
-        # Detect geography heading rows.
-        if isinstance(first_value, str):
-            text = first_value.strip()
+        if current_first_cell is None or next_first_cell is None:
+            continue
 
-            if (
-                text
-                and all(
-                    is_blank(value)
-                    for value in values[1:13]
+        heading = str(current_first_cell).strip()
+
+        if str(next_first_cell).strip().upper() != "ALL AGES":
+            continue
+
+        geography_level = classify_geography(heading)
+
+        # District and Protected Area are district-equivalent parents.
+        if geography_level in {"district", "protected_area"}:
+            current_parent = heading
+            district_name_raw = heading
+
+        elif geography_level in {
+            "tehsil",
+            "sub_division",
+            "de_excluded_area",
+        }:
+            if current_parent is None:
+                raise ValueError(
+                    f"No parent geography found for {heading}"
                 )
-            ):
-                geography_level = classify_geography(text)
 
-                if geography_level is not None:
-                    current_geography = text
-                    current_geography_level = geography_level
+            district_name_raw = current_parent
 
-                    if geography_level == "district":
-                        current_district = text
+        else:
+            raise ValueError(
+                f"Unhandled geography level: {geography_level}"
+            )
 
-                    continue
+        # Every geography heading must be followed by 92 census rows.
+        observation_rows = rows[index + 1:index + 93]
 
-        # Skip anything before the first geography block.
-        if current_geography is None:
-            continue
+        if len(observation_rows) != 92:
+            raise ValueError(
+                f"{heading} has {len(observation_rows)} observation rows, expected 92"
+            )
 
-        # Ignore completely blank rows.
-        if all(
-            is_blank(value)
-            for value in values[:13]
-        ):
-            continue
+        for offset, row in enumerate(observation_rows, start=1):
 
-        record = (
-            SOURCE_ID,
-            SOURCE_FILE,
-            SOURCE_SHEET,
-            row_number,
-            current_geography,
-            current_geography_level,
-            current_district,
-            to_raw_text(values[0]),
-            to_raw_text(values[1]),
-            to_raw_text(values[2]),
-            to_raw_text(values[3]),
-            to_raw_text(values[4]),
-            to_raw_text(values[5]),
-            to_raw_text(values[6]),
-            to_raw_text(values[7]),
-            to_raw_text(values[8]),
-            to_raw_text(values[9]),
-            to_raw_text(values[10]),
-            to_raw_text(values[11]),
-            to_raw_text(values[12]),
+            age_label = clean_cell(row[0])
+
+            values = [
+                clean_cell(value)
+                for value in row[1:13]
+            ]
+
+            if len(values) != 12:
+                raise ValueError(
+                    f"Unexpected population column count for {heading}"
+                )
+
+            source_row_number = index + offset + 1
+
+            records.append(
+                (
+                    source_id,
+                    filename,
+                    sheet_name,
+                    source_row_number,
+
+                    heading,
+                    geography_level,
+                    district_name_raw,
+
+                    age_label,
+
+                    *values,
+                )
+            )
+
+    expected_records = sum(
+        1
+        for index in range(len(rows) - 1)
+        if rows[index][0] is not None
+        and rows[index + 1][0] is not None
+        and str(rows[index + 1][0]).strip().upper() == "ALL AGES"
+    ) * 92
+
+    if len(records) != expected_records:
+        raise ValueError(
+            f"{region}: created {len(records)} records, expected {expected_records}"
         )
 
-        records.append(record)
-
-    workbook.close()
-
-    return records
-
-
-def load_records(records):
-    connection = duckdb.connect(str(DATABASE_PATH))
-
-    connection.execute(
-        "create schema if not exists raw"
-    )
-
-    connection.execute(
-        """
-        create table if not exists raw.pbs_census_2023_table_04 (
-            source_id varchar,
-            source_file varchar,
-            source_sheet varchar,
-            source_row_number integer,
-
-            geography_name_raw varchar,
-            geography_level varchar,
-            district_name_raw varchar,
-
-            age_label_raw varchar,
-
-            all_all_sexes_raw varchar,
-            all_male_raw varchar,
-            all_female_raw varchar,
-            all_transgender_raw varchar,
-
-            rural_all_sexes_raw varchar,
-            rural_male_raw varchar,
-            rural_female_raw varchar,
-            rural_transgender_raw varchar,
-
-            urban_all_sexes_raw varchar,
-            urban_male_raw varchar,
-            urban_female_raw varchar,
-            urban_transgender_raw varchar
-        )
-        """
-    )
-
-    # Make the load safe to rerun.
+    # Safe rerun: replace this source only.
     connection.execute(
         """
         delete from raw.pbs_census_2023_table_04
         where source_id = ?
         """,
-        [SOURCE_ID],
+        [source_id],
     )
 
     connection.executemany(
@@ -204,50 +249,12 @@ def load_records(records):
         records,
     )
 
-    loaded_count = connection.execute(
-        """
-        select count(*)
-        from raw.pbs_census_2023_table_04
-        where source_id = ?
-        """,
-        [SOURCE_ID],
-    ).fetchone()[0]
+    print(f"GEOGRAPHY BLOCKS: {expected_records // 92}")
+    print(f"RAW RECORDS:      {len(records)}")
 
-    connection.close()
-
-    return loaded_count
+    workbook.close()
 
 
-def main():
-    records = extract_records()
+connection.close()
 
-    print(f"Extracted records: {len(records):,}")
-
-    if len(records) != EXPECTED_RECORD_COUNT:
-        raise ValueError(
-            "Unexpected record count. "
-            f"Expected {EXPECTED_RECORD_COUNT:,}, "
-            f"found {len(records):,}."
-        )
-
-    loaded_count = load_records(records)
-
-    print(f"Loaded records: {loaded_count:,}")
-    print()
-    print(
-        "Loaded to: "
-        "raw.pbs_census_2023_table_04"
-    )
-
-    if loaded_count != EXPECTED_RECORD_COUNT:
-        raise ValueError(
-            "DuckDB validation failed. "
-            f"Expected {EXPECTED_RECORD_COUNT:,}, "
-            f"found {loaded_count:,}."
-        )
-
-    print("Record-count validation: PASSED")
-
-
-if __name__ == "__main__":
-    main()
+print("\nLOAD COMPLETE")

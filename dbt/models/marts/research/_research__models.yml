@@ -27,6 +27,8 @@ models:
                 values:
                   - district
                   - tehsil
+                  - protected_area
+                  - sub_division
                   - de_excluded_area
 
       - name: geography_name

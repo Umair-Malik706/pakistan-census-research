@@ -1,77 +1,49 @@
-import csv
-import hashlib
 from pathlib import Path
-from urllib.request import Request, urlopen
+import csv
+import urllib.request
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 
 MANIFEST_PATH = PROJECT_ROOT / "metadata" / "source_manifest.csv"
+RAW_DIR = PROJECT_ROOT / "data" / "raw" / "pbs" / "census_2023" / "table_04"
 
-RAW_DIR = (
-    PROJECT_ROOT
-    / "data"
-    / "raw"
-    / "pbs"
-    / "census_2023"
-    / "table_04"
-)
-
-SOURCE_ID = "pbs_2023_t04_punjab_districts"
+RAW_DIR.mkdir(parents=True, exist_ok=True)
 
 
-def get_source():
-    with MANIFEST_PATH.open("r", encoding="utf-8-sig", newline="") as file:
-        reader = csv.DictReader(file)
-
-        for row in reader:
-            if row["source_id"] == SOURCE_ID:
-                return row
-
-    raise ValueError(f"Source not found in manifest: {SOURCE_ID}")
+with MANIFEST_PATH.open("r", encoding="utf-8-sig", newline="") as file:
+    sources = list(csv.DictReader(file))
 
 
-def calculate_sha256(file_path):
-    sha256 = hashlib.sha256()
+for source in sources:
 
-    with file_path.open("rb") as file:
-        for chunk in iter(lambda: file.read(8192), b""):
-            sha256.update(chunk)
+    census_year = str(source["census_year"]).strip()
+    table_number = str(source["table_number"]).strip().lstrip("0")
 
-    return sha256.hexdigest()
+    if census_year != "2023" or table_number != "4":
+        continue
 
-
-def main():
-    source = get_source()
-
-    url = source["file_url"]
-    filename = source["local_filename"]
-
-    RAW_DIR.mkdir(parents=True, exist_ok=True)
+    source_id = source["source_id"].strip()
+    region = source["region"].strip()
+    url = source["file_url"].strip()
+    filename = source["local_filename"].strip()
 
     output_path = RAW_DIR / filename
 
-    print(f"Downloading: {SOURCE_ID}")
-    print(f"Source: {url}")
+    print("\n" + "=" * 70)
+    print(f"Region: {region}")
+    print(f"Source: {source_id}")
 
-    request = Request(
-        url,
-        headers={"User-Agent": "pakistan-census-research/0.1"},
-    )
+    if output_path.exists():
+        print(f"Already exists: {filename}")
+        continue
 
-    with urlopen(request) as response:
-        content = response.read()
+    if not url:
+        print("SKIPPED: no file_url in manifest")
+        continue
 
-    output_path.write_bytes(content)
+    print(f"Downloading: {filename}")
 
-    file_hash = calculate_sha256(output_path)
+    urllib.request.urlretrieve(url, output_path)
 
-    print()
-    print("Download complete")
-    print(f"Saved to: {output_path}")
-    print(f"File size: {output_path.stat().st_size:,} bytes")
-    print(f"SHA-256: {file_hash}")
-
-
-if __name__ == "__main__":
-    main()
+    print(f"Saved: {output_path}")
