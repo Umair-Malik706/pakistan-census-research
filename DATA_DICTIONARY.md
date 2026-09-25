@@ -6,7 +6,8 @@ This document describes the current researcher-facing datasets produced by the P
 
 
 
-Current coverage is limited to Pakistan Population and Housing Census 2023 Table 4 for Punjab.
+Current coverage includes Punjab, Khyber Pakhtunkhwa, Sindh,
+Balochistan, and Islamabad Capital Territory for Census 2023 Table 4.
 
 
 
@@ -58,11 +59,17 @@ Current Punjab coverage includes:
 
 | `geography\_key`   | Stable unique identifier for the geographic entity. Includes province and parent-district context where necessary. |
 
-| `geography\_level` | Type of geography represented by the row. Current values are `district`, `tehsil`, and `de\_excluded\_area`.         |
+| `geography\_level` | Type of geography represented by the row. Current values are district
+tehsil
+taluka
+sub_division
+sub_tehsil
+protected_area
+de_excluded_area
 
 | `geography\_name`  | Clean analytical geography name derived from the PBS source.                                                       |
 
-| `province\_name`   | Province or territory containing the geography. Current data contains `Punjab`.                                    |
+| `province\_name`   | Province or territory containing the geography. Current data contains All provinces including islamabad                                  |
 
 | `district\_key`    | Stable identifier for the parent district. For district rows, this equals `geography\_key`.                         |
 
@@ -407,8 +414,6 @@ The current release is not yet a complete national census dataset.
 Current limitations include:
 
 
-
-\* Punjab only
 
 \* Census 2023 only
 

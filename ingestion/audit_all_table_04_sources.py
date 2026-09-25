@@ -62,9 +62,6 @@ for source in manifest:
 
     region = source["region"].strip()
 
-    # National file will be used later for QA.
-    #if region.lower() in {"pakistan", "national"}:
-        #continue
 
     filename = source["local_filename"].strip()
     source_id = source["source_id"].strip()
@@ -97,21 +94,6 @@ for source in manifest:
         print(f"\nSHEET: {sheet_name}")
         print(f"ROWS: {ws.max_row}")
         print(f"COLUMNS: {ws.max_column}")
-        
-        if source_id == "pbs_2023_t04_national":
-
-            print("\nNATIONAL FILE - FIRST 8 ROWS:")
-
-            for row_num, row in enumerate(
-                ws.iter_rows(
-                    min_row=1,
-                    max_row=8,
-                    values_only=True
-                ),
-                start=1
-            ):
-        
-                print(f"Row {row_num}: {row}")
         print(f"GEOGRAPHY BLOCKS FOUND: {len(headings)}")
 
         # --------------------------------------------------

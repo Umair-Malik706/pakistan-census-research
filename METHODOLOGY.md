@@ -6,7 +6,9 @@ This document describes the current methodology used to ingest, validate, transf
 
 
 
-Current implementation covers the Punjab district-wise workbook.
+Current implementation covers the regional Census 2023 Table 4
+workbooks for Punjab, Khyber Pakhtunkhwa, Sindh, Balochistan,
+and Islamabad Capital Territory.
 
 
 
@@ -843,8 +845,6 @@ The methodology currently applies to:
 The project has not yet completed:
 
 
-
-\* national coverage
 
 \* other census tables
 

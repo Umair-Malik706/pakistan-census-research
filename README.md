@@ -5,38 +5,20 @@
 An open, reproducible data-engineering project that transforms official Pakistan Bureau of Statistics census data into documented, validated, research-ready datasets.
 
 
-
-\## Current Scope
-
-
+## Current Scope
 
 The project currently processes:
 
+- Pakistan Population and Housing Census 2023
+- Table 4: Population by single year age, sex and rural/urban
+- Punjab
+- Khyber Pakhtunkhwa
+- Sindh
+- Balochistan
+- Islamabad Capital Territory
 
-
-\* Pakistan Population and Housing Census 2023
-
-\* Table 4: Population by single year age, sex and rural/urban
-
-\* Punjab district-wise source workbook
-
-
-
-Current geographic coverage:
-
-
-
-\* 36 districts
-
-\* 145 tehsils
-
-\* 1 De-Excluded Area
-
-\* 182 geographic entities in total
-
-
-
-Additional provinces and territories will be added after the Punjab pipeline is fully validated.
+The regional pipeline is independently reconciled against the official
+Pakistan-level Table 4 workbook.
 
 
 
@@ -292,17 +274,11 @@ Current milestone:
 
 
 
-\*\*Punjab Census 2023 Table 4 pipeline — functional and validated\*\*
+Current milestone:
 
-
-
-Planned next steps include:
-
-
-
-\* finish documentation for the Punjab release
-
-\* add additional provinces and territories
+**Pakistan Census 2023 Table 4 pipeline — nationally integrated and validated**
+Regional totals are reconciled against the official Pakistan-level workbook
+across all age, residence, and sex combinations.
 
 \* produce downloadable research datasets
 
