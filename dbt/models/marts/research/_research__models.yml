@@ -57,6 +57,8 @@ models:
           - not_null
 
       - name: district_name
+        dimension:
+          type: categorical
         description: >
           Clean analytical name of the parent district.
         data_tests:
@@ -372,6 +374,42 @@ models:
         label: Total Population
         agg: sum
         expr: population
+     
+      - name: rural_population
+        description: Total population living in rural areas.
+        label: Rural Population
+        type: derived
+        expr: rural_total
+        input_metrics:
+          - name: total_population
+            alias: rural_total
+            filter: |
+              {{ Dimension('population_observation__residence') }} = 'rural'
+
+      - name: urban_population
+        description: Total population living in urban areas.
+        label: Urban Population
+        type: derived
+        expr: urban_total
+        input_metrics:
+          - name: total_population
+            alias: urban_total
+            filter: |
+              {{ Dimension('population_observation__residence') }} = 'urban'
+      
+      - name: rural_share
+        description: Share of the total population living in rural areas.
+        label: Rural Share
+        type: ratio
+        numerator: rural_population
+        denominator: total_population
+
+      - name: urban_share
+        description: Share of the total population living in urban areas.
+        label: Urban Share
+        type: ratio
+        numerator: urban_population
+        denominator: total_population
   
   - name: time_spine_daily
     description: >
