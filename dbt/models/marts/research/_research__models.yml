@@ -290,3 +290,49 @@ models:
 
       - name: source_row_number
         description: Original source row number.
+  
+  - name: fct_population_district
+    description: >
+      District-safe analytical population fact containing only district and
+      district-equivalent geographies. Designed for additive district,
+      provincial, and national population analysis without geographic
+      double-counting.
+
+    columns:
+      - name: census_year
+        data_tests:
+          - not_null
+
+      - name: geography_key
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_geography')
+                field: geography_key
+
+      - name: age_key
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_age')
+                field: age_key
+
+      - name: residence
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [rural, urban]
+
+      - name: sex
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [male, female, transgender]
+
+      - name: population
+        data_tests:
+          - not_null
