@@ -57,6 +57,59 @@ models:
           Clean analytical name of the parent district.
         data_tests:
           - not_null
+  
+  - name: dim_age
+    description: >
+      Analytical age dimension derived from the validated Census 2023
+      Table 4 age structure. Contains one row for each mutually exclusive
+      age bucket used by analytical population facts.
+
+    columns:
+      - name: age_key
+        description: Stable analytical key for the age bucket.
+        data_tests:
+          - not_null
+          - unique
+
+      - name: age_label
+        description: Original PBS age label.
+
+      - name: age_type
+        description: Type of analytical age bucket.
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values:
+                  - single_age
+                  - open_ended_age_group
+
+      - name: age_year
+        description: Exact age in completed years where applicable.
+
+      - name: age_lower
+        description: Lower bound of the age bucket.
+        data_tests:
+          - not_null
+
+      - name: age_upper
+        description: >
+          Upper bound of the age bucket. Null for the open-ended
+          75 years and above category.
+
+      - name: age_sort
+        description: Numeric value used to order age buckets correctly.
+        data_tests:
+          - not_null
+          - unique
+
+      - name: age_group_5yr
+        description: Derived five-year analytical age group.
+
+      - name: age_group_broad
+        description: >
+          Broad analytical age group: 0-14, 15-64, or 65+.
+
   - name: fct_population_by_age_sex_residence
 
     description: >
@@ -168,3 +221,72 @@ models:
         description: Original Excel row number.
         data_tests:
           - not_null
+  
+  - name: fct_population
+    description: >
+      Additive analytical population fact derived from the validated Census 2023
+      Table 4 research fact. Contains only mutually exclusive age, residence,
+      and sex categories so demographic aggregation is safe within a compatible
+      geography level.
+
+    columns:
+      - name: census_year
+        description: Census year represented by the observation.
+        data_tests:
+          - not_null
+
+      - name: geography_key
+        description: Foreign key to dim_geography.
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_geography')
+                field: geography_key
+
+      - name: age_key
+        description: Foreign key to dim_age.
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_age')
+                field: age_key
+
+      - name: residence
+        description: Mutually exclusive residence category.
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values:
+                  - rural
+                  - urban
+
+      - name: sex
+        description: Mutually exclusive sex category.
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values:
+                  - male
+                  - female
+                  - transgender
+
+      - name: population
+        description: Population count for the fact grain.
+        data_tests:
+          - not_null
+
+      - name: source_id
+        description: Source identifier from the PBS source manifest.
+
+      - name: source_file
+        description: Original PBS workbook filename.
+
+      - name: source_sheet
+        description: Original PBS worksheet name.
+
+      - name: source_row_number
+        description: Original source row number.
