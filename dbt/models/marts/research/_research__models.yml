@@ -297,11 +297,26 @@ models:
       district-equivalent geographies. Designed for additive district,
       provincial, and national population analysis without geographic
       double-counting.
+    
+    semantic_model:
+      enabled: true
+
+    primary_entity: population_observation
+
+    agg_time_dimension: census_date
+
 
     columns:
       - name: census_year
+        dimension:
+          type: categorical
         data_tests:
           - not_null
+      
+      - name: census_date
+        granularity: year
+        dimension:
+          type: time
 
       - name: geography_key
         data_tests:
@@ -320,6 +335,8 @@ models:
                 field: age_key
 
       - name: residence
+        dimension:
+          type: categorical
         data_tests:
           - not_null
           - accepted_values:
@@ -327,6 +344,8 @@ models:
                 values: [rural, urban]
 
       - name: sex
+        dimension:
+          type: categorical
         data_tests:
           - not_null
           - accepted_values:
@@ -336,3 +355,27 @@ models:
       - name: population
         data_tests:
           - not_null
+    
+    metrics:
+      - name: total_population
+        description: >
+          Total population represented by the approved district-safe
+          analytical population fact.
+        type: simple
+        label: Total Population
+        agg: sum
+        expr: population
+  
+  - name: time_spine_daily
+    description: >
+      Daily time spine used by MetricFlow for time-based metric queries.
+
+    time_spine:
+      standard_granularity_column: date_day
+
+    columns:
+      - name: date_day
+        granularity: day
+        data_tests:
+          - not_null
+          - unique

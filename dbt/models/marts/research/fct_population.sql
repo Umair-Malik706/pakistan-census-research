@@ -28,6 +28,8 @@ final as (
     select
         census_year,
 
+        make_date(census_year, 1, 1) as census_date,
+
         geography_key,
 
         case
