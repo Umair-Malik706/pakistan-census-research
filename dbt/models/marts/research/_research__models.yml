@@ -410,6 +410,50 @@ models:
         type: ratio
         numerator: urban_population
         denominator: total_population
+      
+      - name: male_population
+        description: Total male population.
+        label: Male Population
+        type: derived
+        expr: male_total
+        input_metrics:
+          - name: total_population
+            alias: male_total
+            filter: |
+              {{ Dimension('population_observation__sex') }} = 'male'
+
+      - name: female_population
+        description: Total female population.
+        label: Female Population
+        type: derived
+        expr: female_total
+        input_metrics:
+          - name: total_population
+            alias: female_total
+            filter: |
+              {{ Dimension('population_observation__sex') }} = 'female'
+      
+      - name: transgender_population
+        description: Total transgender population.
+        label: Transgender Population
+        type: derived
+        expr: transgender_total
+        input_metrics:
+          - name: total_population
+            alias: transgender_total
+            filter: |
+              {{ Dimension('population_observation__sex') }} = 'transgender'
+      
+      - name: sex_ratio_male_per_100_female
+        description: Number of males per 100 females.
+        label: Sex Ratio (Males per 100 Females)
+        type: derived
+        expr: (male_total / female_total) * 100
+        input_metrics:
+          - name: male_population
+            alias: male_total
+          - name: female_population
+            alias: female_total
   
   - name: time_spine_daily
     description: >
