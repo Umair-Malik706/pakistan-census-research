@@ -22,6 +22,8 @@ models:
           - unique
 
       - name: geography_level
+        dimension:
+          type: categorical
         description: >
           Administrative or source geography type.
         data_tests:
@@ -38,6 +40,8 @@ models:
                   - de_excluded_area
 
       - name: geography_name
+        dimension:
+          type: categorical
         description: >
           Clean analytical geography name derived from the PBS source.
         data_tests:
@@ -84,6 +88,8 @@ models:
 
       - name: age_label
         description: Original PBS age label.
+        dimension:
+          type: categorical
 
       - name: age_type
         description: Type of analytical age bucket.
