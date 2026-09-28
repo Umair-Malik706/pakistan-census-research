@@ -69,10 +69,15 @@ models:
       Analytical age dimension derived from the validated Census 2023
       Table 4 age structure. Contains one row for each mutually exclusive
       age bucket used by analytical population facts.
+    semantic_model:
+      enabled: true
 
     columns:
       - name: age_key
         description: Stable analytical key for the age bucket.
+        entity:
+          type: primary
+          name: age
         data_tests:
           - not_null
           - unique
@@ -111,10 +116,14 @@ models:
 
       - name: age_group_5yr
         description: Derived five-year analytical age group.
+        dimension:
+          type: categorical
 
       - name: age_group_broad
         description: >
           Broad analytical age group: 0-14, 15-64, or 65+.
+        dimension:
+          type: categorical
 
   - name: fct_population_by_age_sex_residence
 
@@ -336,6 +345,9 @@ models:
                 field: geography_key
 
       - name: age_key
+        entity:
+          type: foreign
+          name: age
         data_tests:
           - not_null
           - relationships:
@@ -454,6 +466,59 @@ models:
             alias: male_total
           - name: female_population
             alias: female_total
+        
+        name: population_age_65_plus
+        description: Total population aged 65 years and above.
+        label: Population Age 65+
+        type: derived
+        expr: population_65_plus
+        input_metrics:
+          - name: total_population
+            alias: population_65_plus
+            filter: |
+              {{ Dimension('age__age_group_broad') }} = '65+'
+      - name: population_age_0_14
+        description: Total population aged 0 to 14 years.
+        label: Population Age 0-14
+        type: derived
+        expr: population_0_14
+        input_metrics:
+          - name: total_population
+            alias: population_0_14
+            filter: |
+              {{ Dimension('age__age_group_broad') }} = '0-14'
+
+      - name: population_age_15_64
+        description: Total population aged 15 to 64 years.
+        label: Population Age 15-64
+        type: derived
+        expr: population_15_64
+        input_metrics:
+          - name: total_population
+            alias: population_15_64
+            filter: |
+              {{ Dimension('age__age_group_broad') }} = '15-64'
+
+      - name: share_age_0_14
+        description: Share of the population aged 0 to 14 years.
+        label: Share Age 0-14
+        type: ratio
+        numerator: population_age_0_14
+        denominator: total_population
+
+      - name: share_age_15_64
+        description: Share of the population aged 15 to 64 years.
+        label: Share Age 15-64
+        type: ratio
+        numerator: population_age_15_64
+        denominator: total_population
+
+      - name: share_age_65_plus
+        description: Share of the population aged 65 years and above.
+        label: Share Age 65+
+        type: ratio
+        numerator: population_age_65_plus
+        denominator: total_population
   
   - name: time_spine_daily
     description: >
