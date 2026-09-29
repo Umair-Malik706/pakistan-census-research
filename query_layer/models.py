@@ -24,3 +24,8 @@ class QuerySpec(BaseModel):
     order_by: list[OrderBy] = Field(default_factory=list)
 
     limit: int | None = Field(default=None, ge=1, le=1000)
+
+class QueryResult(BaseModel):
+    query: QuerySpec
+    rows: list[dict[str, str]]
+    provenance: dict

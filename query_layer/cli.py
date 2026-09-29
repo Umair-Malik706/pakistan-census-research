@@ -44,7 +44,7 @@ def main() -> None:
         print(f"ERROR: {exc}", file=sys.stderr)
         raise SystemExit(1)
 
-    print(result)
+    print(result.model_dump_json(indent=2))
 
 
 if __name__ == "__main__":

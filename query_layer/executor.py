@@ -1,12 +1,15 @@
 import os
 import subprocess
+import csv
+import tempfile
 from pathlib import Path
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 DBT_PROJECT_DIR = PROJECT_ROOT / "dbt"
 
-from query_layer.models import QueryFilter, QuerySpec
+from query_layer.models import QueryFilter, QueryResult, QuerySpec
 from query_layer.validator import validate_query_spec
-
+from query_layer.catalog import APPROVED_DIMENSIONS, APPROVED_METRICS
+from query_layer.provenance import get_model_lineage
 
 def _format_value(value):
     if isinstance(value, str):
@@ -38,7 +41,7 @@ def _compile_filter(query_filter: QueryFilter) -> str:
     return f"{dimension} {operator} {_format_value(value)}"
 
 
-def execute_query(spec: QuerySpec) -> str:
+def execute_query(spec: QuerySpec) -> QueryResult:
     validate_query_spec(spec)
 
     command = [
@@ -93,18 +96,70 @@ def execute_query(spec: QuerySpec) -> str:
     env["PYTHONUTF8"] = "1"
     env["PYTHONIOENCODING"] = "utf-8"
 
-    result = subprocess.run(
-        command,
-        cwd=DBT_PROJECT_DIR,
-        env=env,
-        capture_output=True,
-        text=True,
-        encoding="utf-8",
-        errors="replace",
-        check=False,
+    with tempfile.TemporaryDirectory() as temp_dir:
+        csv_path = Path(temp_dir) / "metricflow_result.csv"
+
+        command.extend([
+            "--csv",
+            str(csv_path),
+        ])
+
+        result = subprocess.run(
+            command,
+            cwd=DBT_PROJECT_DIR,
+            env=env,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            check=False,
+        )
+
+        if result.returncode != 0:
+            raise RuntimeError(result.stderr.strip())
+
+        if not csv_path.exists():
+            raise RuntimeError("MetricFlow did not produce the expected CSV output.")
+
+        with csv_path.open("r", encoding="utf-8-sig", newline="") as file:
+            rows = list(csv.DictReader(file))
+
+    dimension_names = list(
+        dict.fromkeys(
+            spec.dimensions
+            + [query_filter.field for query_filter in spec.filters]
+        )
     )
 
-    if result.returncode != 0:
-        raise RuntimeError(result.stderr.strip())
+    metric_metadata = {
+        metric: APPROVED_METRICS[metric]
+        for metric in spec.metrics
+    }
 
-    return result.stdout
+    dimension_metadata = {
+        dimension: APPROVED_DIMENSIONS[dimension]
+        for dimension in dimension_names
+    }
+
+    model_names = {
+        metadata["model"]
+        for metadata in (
+            list(metric_metadata.values())
+            + list(dimension_metadata.values())
+        )
+    }
+
+    provenance = {
+        "metrics": metric_metadata,
+        "dimensions": dimension_metadata,
+        "dbt_lineage": {
+            model_name: get_model_lineage(model_name)
+            for model_name in sorted(model_names)
+        },
+    }
+
+    return QueryResult(
+        query=spec,
+        rows=rows,
+        provenance=provenance,
+    )
