@@ -9,7 +9,7 @@ DBT_PROJECT_DIR = PROJECT_ROOT / "dbt"
 from query_layer.models import QueryFilter, QueryResult, QuerySpec
 from query_layer.validator import validate_query_spec
 from query_layer.catalog import APPROVED_DIMENSIONS, APPROVED_METRICS
-from query_layer.provenance import get_model_lineage
+from query_layer.provenance import get_model_lineage, get_pbs_sources
 
 def _format_value(value):
     if isinstance(value, str):
@@ -149,6 +149,22 @@ def execute_query(spec: QuerySpec) -> QueryResult:
         )
     }
 
+    requested_regions = set()
+
+    for query_filter in spec.filters:
+        if query_filter.field == "geography__province_name":
+            if query_filter.operator == "=":
+                requested_regions.add(str(query_filter.value))
+
+            elif query_filter.operator == "in" and isinstance(
+                query_filter.value,
+                list,
+            ):
+                requested_regions.update(
+                    str(value)
+                    for value in query_filter.value
+                )
+
     provenance = {
         "metrics": metric_metadata,
         "dimensions": dimension_metadata,
@@ -156,6 +172,9 @@ def execute_query(spec: QuerySpec) -> QueryResult:
             model_name: get_model_lineage(model_name)
             for model_name in sorted(model_names)
         },
+        "pbs_sources": get_pbs_sources(
+            regions=requested_regions or None
+        ),
     }
 
     return QueryResult(
