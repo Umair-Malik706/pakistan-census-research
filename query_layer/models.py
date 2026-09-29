@@ -48,3 +48,7 @@ class PlannerResponse(BaseModel):
             )
 
         return self
+
+class CensusAnswer(BaseModel):
+    answer: str
+    notes: list[str] = Field(default_factory=list)
