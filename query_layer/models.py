@@ -1,6 +1,6 @@
 from typing import Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 
 class QueryFilter(BaseModel):
@@ -29,3 +29,22 @@ class QueryResult(BaseModel):
     query: QuerySpec
     rows: list[dict[str, str]]
     provenance: dict
+
+class PlannerResponse(BaseModel):
+    status: Literal["ready", "unsupported"]
+    query: QuerySpec | None = None
+    reason: str | None = None
+
+    @model_validator(mode="after")
+    def validate_response_state(self):
+        if self.status == "ready" and self.query is None:
+            raise ValueError(
+                "A ready planner response must include a query."
+            )
+
+        if self.status == "unsupported" and not self.reason:
+            raise ValueError(
+                "An unsupported planner response must include a reason."
+            )
+
+        return self
