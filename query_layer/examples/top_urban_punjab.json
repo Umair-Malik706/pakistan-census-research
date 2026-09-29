@@ -1,0 +1,22 @@
+{
+  "metrics": [
+    "urban_population"
+  ],
+  "dimensions": [
+    "geography__district_name"
+  ],
+  "filters": [
+    {
+      "field": "geography__province_name",
+      "operator": "=",
+      "value": "Punjab"
+    }
+  ],
+  "order_by": [
+    {
+      "field": "urban_population",
+      "direction": "desc"
+    }
+  ],
+  "limit": 10
+}
