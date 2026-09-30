@@ -3,6 +3,7 @@ from ollama import chat
 from query_layer.models import PlannerResponse
 from query_layer.planner import build_planner_prompt
 from query_layer.validator import validate_query_spec
+from query_layer.normalizer import normalize_plan
 
 
 DEFAULT_MODEL = "qwen3:4b-instruct"
@@ -30,6 +31,11 @@ def plan_question(
 
     planner_response = PlannerResponse.model_validate_json(
         response.message.content
+    )
+
+    planner_response = normalize_plan(
+        question,
+        planner_response,
     )
 
     if (

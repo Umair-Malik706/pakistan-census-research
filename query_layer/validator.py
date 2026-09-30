@@ -21,6 +21,36 @@ def validate_query_spec(spec: QuerySpec) -> QuerySpec:
         if query_filter.field not in APPROVED_DIMENSIONS
     ]
 
+    invalid_filter_values = []
+
+    for query_filter in spec.filters:
+        metadata = APPROVED_DIMENSIONS.get(query_filter.field)
+
+        if metadata is None:
+            continue
+
+        allowed_values = metadata.get("allowed_values")
+
+        if not allowed_values:
+            continue
+
+        values = (
+            query_filter.value
+            if isinstance(query_filter.value, list)
+            else [query_filter.value]
+        )
+
+        invalid_values = [
+            value
+            for value in values
+            if value not in allowed_values
+        ]
+
+        if invalid_values:
+            invalid_filter_values.append(
+                f"{query_filter.field}: {invalid_values}"
+            )
+
     selected_fields = set(spec.metrics) | set(spec.dimensions)
 
     invalid_order_fields = [
@@ -44,6 +74,12 @@ def validate_query_spec(spec: QuerySpec) -> QuerySpec:
     if unsupported_filters:
         errors.append(
             f"Unsupported filter fields: {', '.join(unsupported_filters)}"
+        )
+    
+    if invalid_filter_values:
+        errors.append(
+            "Invalid filter values: "
+            + "; ".join(invalid_filter_values)
         )
 
     if invalid_order_fields:

@@ -81,7 +81,14 @@ APPROVED_DIMENSIONS = {
     "geography__province_name": {
         "model": "dim_geography",
         "description": "Province or territory name.",
-    },
+        "allowed_values": [
+            "Punjab",
+            "Sindh",
+            "Khyber Pakhtunkhwa",
+            "Balochistan",
+            "Islamabad Capital Territory",
+        ],
+},
     "geography__district_name": {
         "model": "dim_geography",
         "description": "District or district-equivalent name.",
@@ -105,18 +112,33 @@ APPROVED_DIMENSIONS = {
     "age__age_group_broad": {
         "model": "dim_age",
         "description": "Broad age group: 0-14, 15-64, or 65+.",
+        "allowed_values": [
+            "0-14",
+            "15-64",
+            "65+",
+        ],
     },
     "population_observation__census_year": {
         "model": "fct_population_district",
         "description": "Census year.",
     },
+    
     "population_observation__residence": {
         "model": "fct_population_district",
         "description": "Residence category: rural or urban.",
+        "allowed_values": [
+            "rural",
+            "urban",
+        ],
     },
     "population_observation__sex": {
         "model": "fct_population_district",
         "description": "Sex category reported by PBS.",
+        "allowed_values": [
+            "male",
+            "female",
+            "transgender",
+        ],
     },
 }
 

@@ -1,0 +1,99 @@
+[
+  {
+    "name": "national_total_population",
+    "question": "What is Pakistan's total population?",
+    "expected": {
+      "status": "ready",
+      "metrics": ["total_population"],
+      "dimensions": [],
+      "filters": [],
+      "order_by": [],
+      "limit": null
+    }
+  },
+  {
+    "name": "population_by_province",
+    "question": "Show Pakistan's population by province.",
+    "expected": {
+      "status": "ready",
+      "metrics": ["total_population"],
+      "dimensions": ["geography__province_name"],
+      "filters": [],
+      "order_by": [],
+      "limit": null
+    }
+  },
+  {
+    "name": "top_urban_punjab_districts",
+    "question": "Which 10 Punjab districts have the largest urban population?",
+    "expected": {
+      "status": "ready",
+      "metrics": ["urban_population"],
+      "dimensions": ["geography__district_name"],
+      "filters": [
+        {
+          "field": "geography__province_name",
+          "operator": "=",
+          "value": "Punjab"
+        }
+      ],
+      "order_by": [
+        {
+          "field": "urban_population",
+          "direction": "desc"
+        }
+      ],
+      "limit": 10
+    }
+  },
+  {
+    "name": "urban_share",
+    "question": "What share of Pakistan's population lives in urban areas?",
+    "expected": {
+      "status": "ready",
+      "metrics": ["urban_share"],
+      "dimensions": [],
+      "filters": [],
+      "order_by": [],
+      "limit": null
+    }
+  },
+  {
+    "name": "population_65_plus",
+    "question": "How many people in Pakistan are aged 65 or older?",
+    "expected": {
+      "status": "ready",
+      "metrics": ["population_age_65_plus"],
+      "dimensions": [],
+      "filters": [],
+      "order_by": [],
+      "limit": null
+    }
+  },
+  {
+    "name": "sex_ratio",
+    "question": "What is Pakistan's male to female sex ratio?",
+    "expected": {
+      "status": "ready",
+      "metrics": ["sex_ratio_male_per_100_female"],
+      "dimensions": [],
+      "filters": [],
+      "order_by": [],
+      "limit": null
+    }
+  },
+  {
+    "name": "unsupported_poverty",
+    "question": "Which district has the highest poverty rate?",
+    "expected": {
+      "status": "unsupported"
+    }
+  },
+  {
+    "name": "unsupported_literacy",
+    "question": "Which province has the highest literacy rate?",
+    "expected": {
+      "status": "unsupported"
+    }
+  }
+]
