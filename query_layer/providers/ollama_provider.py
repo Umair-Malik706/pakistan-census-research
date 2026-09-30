@@ -24,6 +24,7 @@ def plan_question(
             }
         ],
         format=PlannerResponse.model_json_schema(),
+        keep_alive="30m",
         options={
             "temperature": 0,
         },

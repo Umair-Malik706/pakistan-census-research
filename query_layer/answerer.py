@@ -48,6 +48,7 @@ Return structured JSON only.
         ],
         format=CensusAnswer.model_json_schema(),
         think=False,
+        keep_alive="30m",
         options={
             "temperature": 0,
         },
