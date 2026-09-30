@@ -52,3 +52,15 @@ class PlannerResponse(BaseModel):
 class CensusAnswer(BaseModel):
     answer: str
     notes: list[str] = Field(default_factory=list)
+
+class AskRequest(BaseModel):
+    question: str = Field(
+        min_length=1,
+        max_length=500,
+    )
+
+class AskResponse(BaseModel):
+    status: Literal["ready", "unsupported"]
+    plan: PlannerResponse
+    result: QueryResult | None = None
+    answer: CensusAnswer | None = None
