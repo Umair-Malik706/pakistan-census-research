@@ -9,6 +9,45 @@
     "answer_contains": ["240,458,089"]
   },
   {
+    "name": "national_male_population",
+    "question": "What is Pakistan's male population?",
+    "status": "ready",
+    "metrics": ["male_population"],
+    "dimensions": [],
+    "filters": [],
+    "order_by": [],
+    "limit": null,
+    "expected_value": "123824681",
+    "require_answer": true,
+    "answer_contains": ["123,824,681"]
+  },
+  {
+    "name": "national_female_population",
+    "question": "What is Pakistan's female population?",
+    "status": "ready",
+    "metrics": ["female_population"],
+    "dimensions": [],
+    "filters": [],
+    "order_by": [],
+    "limit": null,
+    "expected_value": "116613077",
+    "require_answer": true,
+    "answer_contains": ["116,613,077"]
+  },
+  {
+    "name": "national_transgender_population",
+    "question": "What is Pakistan's transgender population?",
+    "status": "ready",
+    "metrics": ["transgender_population"],
+    "dimensions": [],
+    "filters": [],
+    "order_by": [],
+    "limit": null,
+    "expected_value": "20331",
+    "require_answer": true,
+    "answer_contains": ["20,331"]
+  },
+  {
     "name": "teenage_rawalpindi",
     "question": "What is the teenage population in Rawalpindi?",
     "status": "ready",
@@ -160,12 +199,94 @@
     "row_count": 10,
     "expected_first_row": {
       "geography__district_name": "LAHORE",
-      "urban_population": "12978661"
-    }
+      "urban_population": "12978661"},
+      "expected_pbs_sources": 1,
+      "expected_source_regions": [
+        "Punjab"
+      ],
+      "require_answer": true
   },
+
   {
     "name": "unsupported_poverty",
     "question": "What is the poverty rate in Punjab?",
     "status": "unsupported"
+  },
+
+  {
+    "name": "unsupported_literacy",
+    "question": "Which province has the highest literacy rate?",
+    "status": "unsupported"
+  },
+  {
+    "name": "population_by_province",
+    "question": "Show Pakistan's population by province.",
+    "status": "ready",
+    "metrics": ["total_population"],
+    "dimensions": [
+      "geography__province_name"
+    ],
+    "filters": [],
+    "order_by": [],
+    "limit": null,
+    "row_count": 5,
+    "expected_pbs_sources": 5,
+    "require_answer": true
+  },
+  {
+    "name": "explicit_age_range_lahore",
+    "question": "What is the population aged 18 to 24 in Lahore?",
+    "status": "ready",
+    "metrics": ["total_population"],
+    "dimensions": [],
+    "filters": [
+      {
+        "field": "geography__district_name",
+        "operator": "=",
+        "value": "Lahore"
+      },
+      {
+        "field": "age__age_lower",
+        "operator": ">=",
+        "value": 18
+      },
+      {
+        "field": "age__age_lower",
+        "operator": "<=",
+        "value": 24
+      }
+    ],
+    "order_by": [],
+    "limit": null,
+    "comparison": null,
+    "require_answer": true
+  },
+  {
+    "name": "sindh_urban_rural_percent_change",
+    "question": "What percentage higher is Sindh's urban population than its rural population?",
+    "status": "ready",
+    "metrics": [
+      "urban_population",
+      "rural_population"
+    ],
+    "dimensions": [],
+    "filters": [
+      {
+        "field": "geography__province_name",
+        "operator": "=",
+        "value": "Sindh"
+      }
+    ],
+    "order_by": [],
+    "limit": null,
+    "comparison": {
+      "operation": "percent_change",
+      "left_metric": "urban_population",
+      "right_metric": "rural_population"
+    },
+    "require_answer": true,
+    "answer_contains": [
+      "17.14%"
+    ]
   }
 ]

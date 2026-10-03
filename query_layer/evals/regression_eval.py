@@ -304,6 +304,66 @@ def evaluate_case(case: dict) -> None:
                     ),
                 )
 
+    expected_source_count = case.get(
+        "expected_pbs_sources"
+    )
+
+    pbs_sources = result.provenance.get(
+        "pbs_sources",
+        [],
+    )
+
+    if (
+        expected_source_count is not None
+        and len(pbs_sources)
+        != expected_source_count
+    ):
+        fail(
+            name,
+            (
+                f"expected "
+                f"{expected_source_count} PBS sources, "
+                f"got {len(pbs_sources)}"
+            ),
+        )
+
+    expected_regions = case.get(
+        "expected_source_regions"
+    )
+
+    if expected_regions is not None:
+        actual_regions = sorted(
+            source["region"]
+            for source in pbs_sources
+        )
+
+        if actual_regions != sorted(expected_regions):
+            fail(
+                name,
+                (
+                    "PBS source regions mismatch: "
+                    f"{actual_regions}"
+                ),
+            )
+
+    if case.get("require_answer"):
+        if answer is None:
+            fail(
+                name,
+                "expected an answer",
+            )
+
+        if not answer.answer.strip():
+            fail(
+                name,
+                "answer was empty",
+            )
+
+    answer_contains = case.get(
+        "answer_contains",
+        [],
+    )
+
     answer_contains = case.get(
         "answer_contains",
         [],
