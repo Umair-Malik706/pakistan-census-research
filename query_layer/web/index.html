@@ -74,6 +74,35 @@
         .source {
             margin-bottom: 12px;
         }
+
+        .interpretation-grid {
+            display: grid;
+            grid-template-columns: 140px 1fr;
+            gap: 10px 16px;
+        }
+
+        .interpretation-label {
+            font-weight: 600;
+        }
+
+        .interpretation-value {
+            min-width: 0;
+        }
+
+        .performance-grid {
+            display: grid;
+            grid-template-columns: 140px 1fr;
+            gap: 8px 16px;
+        }
+
+        details {
+            margin-top: 16px;
+        }
+
+        summary {
+            cursor: pointer;
+            font-weight: 600;
+        }
     </style>
 </head>
 
@@ -102,14 +131,32 @@
         <p id="timing" class="meta"></p>
     </section>
 
+    <section id="interpretation-card" class="card hidden">
+        <h2>How your question was interpreted</h2>
+        <div
+            id="interpretation"
+            class="interpretation-grid"
+        ></div>
+    </section>
+
+    <section id="performance-card" class="card hidden">
+        <h2>Performance</h2>
+        <div
+            id="performance"
+            class="performance-grid"
+        ></div>
+    </section>
+
     <section id="sources-card" class="card hidden">
         <h2>PBS Sources</h2>
         <div id="sources"></div>
     </section>
 
     <section id="plan-card" class="card hidden">
-        <h2>Query Plan</h2>
-        <pre id="plan"></pre>
+        <details>
+            <summary>Technical query plan</summary>
+            <pre id="plan"></pre>
+        </details>
     </section>
 
     <script>
@@ -120,6 +167,16 @@
         const answerCard = document.getElementById("answer-card");
         const answerElement = document.getElementById("answer");
         const timingElement = document.getElementById("timing");
+
+        const interpretationCard =
+            document.getElementById("interpretation-card");
+        const interpretationElement =
+            document.getElementById("interpretation");
+
+        const performanceCard =
+            document.getElementById("performance-card");
+        const performanceElement =
+            document.getElementById("performance");
 
         const sourcesCard = document.getElementById("sources-card");
         const sourcesElement = document.getElementById("sources");
@@ -139,6 +196,8 @@
             status.textContent = "Running census query...";
 
             answerCard.classList.add("hidden");
+            interpretationCard.classList.add("hidden");
+            performanceCard.classList.add("hidden");
             sourcesCard.classList.add("hidden");
             planCard.classList.add("hidden");
 
@@ -181,6 +240,118 @@
                     `Completed in ${data.elapsed_seconds.toFixed(2)}s`;
 
                 answerCard.classList.remove("hidden");
+
+                const interpretation = data.interpretation;
+
+                interpretationElement.replaceChildren();
+
+                function addInterpretationRow(label, value) {
+                    if (
+                        value === null ||
+                        value === undefined ||
+                        value === "" ||
+                        (Array.isArray(value) && value.length === 0)
+                    ) {
+                        return;
+                    }
+
+                    const labelElement = document.createElement("div");
+                    labelElement.className = "interpretation-label";
+                    labelElement.textContent = label;
+
+                    const valueElement = document.createElement("div");
+                    valueElement.className = "interpretation-value";
+
+                    if (Array.isArray(value)) {
+                        valueElement.textContent = value.join(", ");
+                    } else {
+                        valueElement.textContent = String(value);
+                    }
+
+                    interpretationElement.appendChild(labelElement);
+                    interpretationElement.appendChild(valueElement);
+                }
+
+                if (interpretation) {
+                    addInterpretationRow(
+                        "Metrics",
+                        interpretation.metrics
+                    );
+
+                    addInterpretationRow(
+                        "Filters",
+                        interpretation.filters
+                    );
+
+                    addInterpretationRow(
+                        "Grouped by",
+                        interpretation.grouping
+                    );
+
+                    addInterpretationRow(
+                        "Comparison",
+                        interpretation.comparison
+                    );
+
+                    addInterpretationRow(
+                        "Sorting",
+                        interpretation.sorting
+                    );
+
+                    if (interpretation.limit !== null) {
+                        addInterpretationRow(
+                            "Limit",
+                            interpretation.limit
+                        );
+                    }
+
+                    interpretationCard.classList.remove("hidden");
+                }
+                
+                const timings = data.timings;
+
+                performanceElement.replaceChildren();
+
+                function addPerformanceRow(label, seconds) {
+                    if (seconds === null || seconds === undefined) {
+                        return;
+                    }
+
+                    const labelElement = document.createElement("div");
+                    labelElement.className = "interpretation-label";
+                    labelElement.textContent = label;
+
+                    const valueElement = document.createElement("div");
+                    valueElement.textContent =
+                        `${seconds.toFixed(2)}s`;
+
+                    performanceElement.appendChild(labelElement);
+                    performanceElement.appendChild(valueElement);
+                }
+
+                if (timings) {
+                    addPerformanceRow(
+                        "Planning",
+                        timings.planner_seconds
+                    );
+
+                    addPerformanceRow(
+                        "Query",
+                        timings.query_seconds
+                    );
+
+                    addPerformanceRow(
+                        "Answer rendering",
+                        timings.answer_seconds
+                    );
+
+                    addPerformanceRow(
+                        "Total",
+                        timings.total_seconds
+                    );
+
+                    performanceCard.classList.remove("hidden");
+                }
 
                 const sources =
                     data.result?.provenance?.pbs_sources || [];
