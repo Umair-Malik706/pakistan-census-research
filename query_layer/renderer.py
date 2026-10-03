@@ -22,6 +22,110 @@ def _format_metric_value(metric: str, value: str) -> str:
 
     return f"{number:g}"
 
+def _display_value(value) -> str:
+    text = str(value)
+
+    if any(character.isalpha() for character in text) and text.isupper():
+        return text.title()
+
+    return text
+
+
+def _describe_query_context(
+    result: QueryResult,
+) -> str:
+    filters = result.query.filters
+
+    province = None
+    district = None
+    residence = None
+    sex = None
+
+    age_exact = None
+    age_lower = None
+    age_upper = None
+    age_lower_exclusive = None
+    age_upper_exclusive = None
+
+    for query_filter in filters:
+        field = query_filter.field
+        operator = query_filter.operator
+        value = query_filter.value
+
+        if operator == "=":
+            if field == "geography__province_name":
+                province = _display_value(value)
+
+            elif field == "geography__district_name":
+                district = _display_value(value)
+
+            elif field == "population_observation__residence":
+                residence = _display_value(value)
+
+            elif field == "population_observation__sex":
+                sex = _display_value(value)
+
+            elif field == "age__age_lower":
+                age_exact = value
+
+        if field == "age__age_lower":
+            if operator == ">=":
+                age_lower = value
+
+            elif operator == "<=":
+                age_upper = value
+
+            elif operator == ">":
+                age_lower_exclusive = value
+
+            elif operator == "<":
+                age_upper_exclusive = value
+
+    parts = []
+
+    if district and province:
+        parts.append(f"{district}, {province}")
+    elif district:
+        parts.append(district)
+    elif province:
+        parts.append(province)
+
+    if residence:
+        parts.append(str(residence).lower())
+
+    if sex:
+        parts.append(str(sex).lower())
+
+    if age_exact is not None:
+        parts.append(f"age {age_exact}")
+
+    elif age_lower is not None and age_upper is not None:
+        parts.append(
+            f"ages {age_lower}\u2013{age_upper}"
+        )
+
+    elif age_lower is not None:
+        parts.append(
+            f"age {age_lower} or older"
+        )
+
+    elif age_upper is not None:
+        parts.append(
+            f"age {age_upper} or younger"
+        )
+
+    elif age_lower_exclusive is not None:
+        parts.append(
+            f"older than {age_lower_exclusive}"
+        )
+
+    elif age_upper_exclusive is not None:
+        parts.append(
+            f"younger than {age_upper_exclusive}"
+        )
+
+    return ", ".join(parts)
+
 
 def render_simple_answer(
     question: str,
@@ -53,12 +157,24 @@ def render_simple_answer(
             raw_value,
         )
 
-        return CensusAnswer(
-            answer=(
-                f"{metadata['description']} "
-                f"The result is {value}."
+        context = _describe_query_context(result)
+
+        description = metadata["description"].rstrip(".")
+
+        if context:
+            answer_text = (
+                f"{description} for {context}: {value}."
             )
+        else:
+            answer_text = (
+                f"{description}: {value}."
+            )
+
+        return CensusAnswer(
+            answer=answer_text
         )
+            
+        
 
     # Grouped or ranked results, such as districts by population.
     if result.query.dimensions:
@@ -103,9 +219,19 @@ def render_simple_answer(
                     f"- {label}: {value}"
                 )
 
+        context = _describe_query_context(result)
+
+        description = metadata["description"].rstrip(".")
+
+        if context:
+            heading = f"{description} for {context}:"
+        else:
+            heading = f"{description}:"
+
         return CensusAnswer(
             answer=(
-                f"{metadata['description']}\n"
+                heading
+                + "\n"
                 + "\n".join(lines)
             )
         )

@@ -9,7 +9,9 @@ from query_layer.provenance import (
     get_pbs_sources,
 )
 from query_layer.validator import validate_query_spec
-
+from query_layer.geography_resolver import (
+    resolve_district_name,
+)
 
 def _format_value(value):
     if isinstance(value, str):
@@ -29,6 +31,13 @@ def _normalize_filter_value(
     value = query_filter.value
 
     def normalize_single(item):
+        if (
+            query_filter.field
+            == "geography__district_name"
+            and isinstance(item, str)
+        ):
+            return resolve_district_name(item)
+
         if transform == "upper" and isinstance(item, str):
             return item.upper()
 
