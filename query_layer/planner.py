@@ -159,6 +159,11 @@ END AGE EXAMPLE
 - Never invent a comparison operation unless the user explicitly asks
   for arithmetic between the metrics.
 
+- Comparative arithmetic may be grouped when the user explicitly asks
+  "for each", "by", or "across" a dimension. Keep that requested
+  dimension in dimensions and apply the comparison independently to
+  each returned group.
+
 EXAMPLES:
 Question:
 How much larger is Punjab's male population than its female population?
@@ -194,7 +199,21 @@ comparison:
   left_metric: "urban_population"
   right_metric: "rural_population"
 
-END EXAMPLES
+Question:
+For each province, how much larger is rural population than urban population?
+
+Ready query:
+metrics: ["rural_population", "urban_population"]
+dimensions: ["geography__province_name"]
+filters: []
+order_by: []
+limit: null
+comparison:
+  operation: "difference"
+  left_metric: "rural_population"
+  right_metric: "urban_population"
+
+END COMPARISON EXAMPLES
 
 APPROVED ANALYTICAL CATALOG:
 {json.dumps(catalog, indent=2)}

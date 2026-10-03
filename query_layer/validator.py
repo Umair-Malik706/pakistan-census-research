@@ -145,12 +145,6 @@ def validate_query_spec(spec: QuerySpec) -> QuerySpec:
                 "Comparison metrics must be different."
             )
 
-        if spec.dimensions:
-            errors.append(
-                "Comparative arithmetic currently "
-                "supports scalar queries only."
-            )
-
         left_metadata = APPROVED_METRICS.get(
             comparison.left_metric
         )

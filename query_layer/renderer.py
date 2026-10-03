@@ -285,129 +285,195 @@ def _render_comparison_answer(
             "Comparison specification is missing."
         )
 
-    if len(result.rows) != 1:
+    if not result.rows:
         return CensusAnswer(
-            answer=(
-                "Comparative arithmetic currently "
-                "requires one aggregate result."
-            )
+            answer="No matching census data was returned."
         )
 
-    row = result.rows[0]
-
-    left_raw = row.get(
+    left_name = _metric_display_name(
         comparison.left_metric
     )
-    right_raw = row.get(
+
+    right_name = _metric_display_name(
         comparison.right_metric
     )
 
-    if (
-        left_raw in (None, "")
-        or right_raw in (None, "")
-    ):
+    def render_row(row) -> str | None:
+        left_raw = row.get(
+            comparison.left_metric
+        )
+
+        right_raw = row.get(
+            comparison.right_metric
+        )
+
+        if (
+            left_raw in (None, "")
+            or right_raw in (None, "")
+        ):
+            return None
+
+        left_value = float(
+            str(left_raw).replace(",", "")
+        )
+
+        right_value = float(
+            str(right_raw).replace(",", "")
+        )
+
+        if comparison.operation == "difference":
+            difference = left_value - right_value
+
+            if difference == 0:
+                return (
+                    f"{left_name} and "
+                    f"{right_name} are equal."
+                )
+
+            formatted_difference = (
+                _format_metric_value(
+                    comparison.left_metric,
+                    str(abs(difference)),
+                )
+            )
+
+            direction = (
+                "higher"
+                if difference > 0
+                else "lower"
+            )
+
+            return (
+                f"{left_name} is "
+                f"{formatted_difference} "
+                f"{direction} than {right_name}."
+            )
+
+        if comparison.operation == "percent_change":
+            if right_value == 0:
+                return (
+                    f"Percentage comparison cannot "
+                    f"be calculated because "
+                    f"{right_name} is zero."
+                )
+
+            percentage = (
+                (left_value - right_value)
+                / right_value
+                * 100
+            )
+
+            if percentage == 0:
+                return (
+                    f"{left_name} and "
+                    f"{right_name} are equal."
+                )
+
+            direction = (
+                "higher"
+                if percentage > 0
+                else "lower"
+            )
+
+            return (
+                f"{left_name} is "
+                f"{abs(percentage):.2f}% "
+                f"{direction} than {right_name}."
+            )
+
+        raise ValueError(
+            "Unsupported comparison operation."
+        )
+
+    # Scalar comparison.
+    if not result.query.dimensions:
+        comparison_text = render_row(
+            result.rows[0]
+        )
+
+        if comparison_text is None:
+            return CensusAnswer(
+                answer=(
+                    "No matching census data was returned."
+                )
+            )
+
+        context = _describe_query_context(
+            result
+        )
+
+        if context:
+            comparison_text = (
+                f"{context}: {comparison_text}"
+            )
+
+        return CensusAnswer(
+            answer=comparison_text
+        )
+
+    # Grouped comparison.
+    lines = []
+
+    for row in result.rows:
+        labels = []
+
+        for dimension in result.query.dimensions:
+            dimension_value = row.get(
+                dimension
+            )
+
+            if dimension_value is None:
+                short_name = dimension.split(
+                    "__"
+                )[-1]
+
+                dimension_value = row.get(
+                    short_name
+                )
+
+            if dimension_value is not None:
+                labels.append(
+                    _display_value(
+                        dimension_value
+                    )
+                )
+
+        if not labels:
+            continue
+
+        comparison_text = render_row(row)
+
+        if comparison_text is None:
+            continue
+
+        lines.append(
+            f"{' / '.join(labels)} — "
+            f"{comparison_text}"
+        )
+
+    if not lines:
         return CensusAnswer(
             answer=(
                 "No matching census data was returned."
             )
         )
 
-    left_value = float(
-        str(left_raw).replace(",", "")
-    )
-    right_value = float(
-        str(right_raw).replace(",", "")
-    )
-
-    left_name = _metric_display_name(
-        comparison.left_metric
-    )
-    right_name = _metric_display_name(
-        comparison.right_metric
-    )
-
     context = _describe_query_context(
         result
     )
 
-    prefix = (
-        f"{context}: "
+    heading = (
+        f"Comparison for {context}:"
         if context
-        else ""
+        else "Census comparison:"
     )
 
-    if comparison.operation == "difference":
-        difference = left_value - right_value
-
-        if difference == 0:
-            return CensusAnswer(
-                answer=(
-                    f"{prefix}{left_name} and "
-                    f"{right_name} are equal."
-                )
-            )
-
-        formatted_difference = (
-            _format_metric_value(
-                comparison.left_metric,
-                str(abs(difference)),
-            )
+    return CensusAnswer(
+        answer=(
+            heading
+            + "\n"
+            + "\n".join(lines)
         )
-
-        direction = (
-            "higher"
-            if difference > 0
-            else "lower"
-        )
-
-        return CensusAnswer(
-            answer=(
-                f"{prefix}{left_name} is "
-                f"{formatted_difference} "
-                f"{direction} than {right_name}."
-            )
-        )
-
-    if comparison.operation == "percent_change":
-        if right_value == 0:
-            return CensusAnswer(
-                answer=(
-                    f"{prefix}A percentage comparison "
-                    f"cannot be calculated because "
-                    f"{right_name} is zero."
-                )
-            )
-
-        percentage = (
-            (left_value - right_value)
-            / right_value
-            * 100
-        )
-
-        if percentage == 0:
-            return CensusAnswer(
-                answer=(
-                    f"{prefix}{left_name} and "
-                    f"{right_name} are equal."
-                )
-            )
-
-        direction = (
-            "higher"
-            if percentage > 0
-            else "lower"
-        )
-
-        return CensusAnswer(
-            answer=(
-                f"{prefix}{left_name} is "
-                f"{abs(percentage):.2f}% "
-                f"{direction} than {right_name}."
-            )
-        )
-
-    raise ValueError(
-        "Unsupported comparison operation."
     )
 
 def render_simple_answer(
