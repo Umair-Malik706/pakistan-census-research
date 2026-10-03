@@ -53,18 +53,38 @@ def normalize_plan(
         "smallest",
         "lowest",
         "top",
+        "bottom",
+        "most",
+        "least",
+        "rank",
+        "ranking",
     )
 
-    if query.limit is None and any(
-        word in question.lower()
+    question_lower = question.lower()
+
+    is_ranking_question = any(
+        re.search(
+            rf"\b{re.escape(word)}\b",
+            question_lower,
+        )
         for word in ranking_words
+    )
+
+    # Remove sorting invented by the planner when the
+    # user did not actually ask for a ranking.
+    if not is_ranking_question:
+        query.order_by = []
+
+    # Preserve explicit ranking limits such as "top 10".
+    if (
+        is_ranking_question
+        and query.limit is None
     ):
-        number_match = re.search(
+        match = re.search(
             r"\b(\d{1,3})\b",
-            question,
+            question_lower,
         )
 
-        if number_match:
-            query.limit = int(number_match.group(1))
-
+        if match:
+            query.limit = int(match.group(1))
     return response

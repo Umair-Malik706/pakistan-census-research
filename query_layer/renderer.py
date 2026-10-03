@@ -1,15 +1,17 @@
-from query_layer.catalog import (
-    APPROVED_DIMENSIONS,
-    APPROVED_METRICS,
-)
+from query_layer.catalog import APPROVED_METRICS
 from query_layer.models import CensusAnswer, QueryResult
 
 
-def _format_metric_value(metric: str, value: str) -> str:
+def _format_metric_value(
+    metric: str,
+    value: str,
+) -> str:
     metadata = APPROVED_METRICS[metric]
     unit = metadata.get("unit")
 
-    number = float(str(value).replace(",", ""))
+    number = float(
+        str(value).replace(",", "")
+    )
 
     if unit == "people":
         return f"{int(round(number)):,}"
@@ -22,20 +24,20 @@ def _format_metric_value(metric: str, value: str) -> str:
 
     return f"{number:g}"
 
+
 def _display_value(value) -> str:
-    text = str(value)
+    return str(value)
 
-    if any(character.isalpha() for character in text) and text.isupper():
-        return text.title()
 
-    return text
+def _metric_display_name(
+    metric: str,
+) -> str:
+    return metric.replace("_", " ").title()
 
 
 def _describe_query_context(
     result: QueryResult,
 ) -> str:
-    filters = result.query.filters
-
     province = None
     district = None
     residence = None
@@ -47,7 +49,7 @@ def _describe_query_context(
     age_lower_exclusive = None
     age_upper_exclusive = None
 
-    for query_filter in filters:
+    for query_filter in result.query.filters:
         field = query_filter.field
         operator = query_filter.operator
         value = query_filter.value
@@ -84,24 +86,35 @@ def _describe_query_context(
     parts = []
 
     if district and province:
-        parts.append(f"{district}, {province}")
+        parts.append(
+            f"{district}, {province}"
+        )
     elif district:
         parts.append(district)
     elif province:
         parts.append(province)
 
     if residence:
-        parts.append(str(residence).lower())
+        parts.append(
+            str(residence).lower()
+        )
 
     if sex:
-        parts.append(str(sex).lower())
+        parts.append(
+            str(sex).lower()
+        )
 
     if age_exact is not None:
-        parts.append(f"age {age_exact}")
-
-    elif age_lower is not None and age_upper is not None:
         parts.append(
-            f"ages {age_lower}\u2013{age_upper}"
+            f"age {age_exact}"
+        )
+
+    elif (
+        age_lower is not None
+        and age_upper is not None
+    ):
+        parts.append(
+            f"ages {age_lower}–{age_upper}"
         )
 
     elif age_lower is not None:
@@ -127,10 +140,152 @@ def _describe_query_context(
     return ", ".join(parts)
 
 
+def _render_multi_metric_answer(
+    result: QueryResult,
+) -> CensusAnswer:
+    metrics = result.query.metrics
+    context = _describe_query_context(
+        result
+    )
+
+    if not result.rows:
+        return CensusAnswer(
+            answer=(
+                "No matching census data was returned."
+            )
+        )
+
+    # Multiple metrics with no grouping.
+    if not result.query.dimensions:
+        row = result.rows[0]
+        lines = []
+
+        for metric in metrics:
+            raw_value = row.get(metric)
+
+            if raw_value in (None, ""):
+                continue
+
+            value = _format_metric_value(
+                metric,
+                raw_value,
+            )
+
+            lines.append(
+                f"- {_metric_display_name(metric)}: "
+                f"{value}"
+            )
+
+        if not lines:
+            return CensusAnswer(
+                answer=(
+                    "No matching census data "
+                    "was returned."
+                )
+            )
+
+        heading = (
+            f"{context}:"
+            if context
+            else "Census comparison:"
+        )
+
+        return CensusAnswer(
+            answer=(
+                heading
+                + "\n"
+                + "\n".join(lines)
+            )
+        )
+
+    # Multiple metrics grouped by dimensions.
+    lines = []
+
+    for row in result.rows:
+        labels = []
+
+        for dimension in result.query.dimensions:
+            dimension_value = row.get(
+                dimension
+            )
+
+            if dimension_value is None:
+                short_name = dimension.split(
+                    "__"
+                )[-1]
+
+                dimension_value = row.get(
+                    short_name
+                )
+
+            if dimension_value is not None:
+                labels.append(
+                    _display_value(
+                        dimension_value
+                    )
+                )
+
+        if not labels:
+            continue
+
+        metric_parts = []
+
+        for metric in metrics:
+            raw_value = row.get(metric)
+
+            if raw_value in (None, ""):
+                continue
+
+            value = _format_metric_value(
+                metric,
+                raw_value,
+            )
+
+            metric_parts.append(
+                f"{_metric_display_name(metric)}: "
+                f"{value}"
+            )
+
+        if not metric_parts:
+            continue
+
+        lines.append(
+            f"{' / '.join(labels)} — "
+            + " | ".join(metric_parts)
+        )
+
+    if not lines:
+        return CensusAnswer(
+            answer=(
+                "No matching census data was returned."
+            )
+        )
+
+    heading = (
+        f"Census comparison for {context}:"
+        if context
+        else "Census comparison:"
+    )
+
+    return CensusAnswer(
+        answer=(
+            heading
+            + "\n"
+            + "\n".join(lines)
+        )
+    )
+
+
 def render_simple_answer(
     question: str,
     result: QueryResult,
 ) -> CensusAnswer | None:
+    # Multi-metric queries are fully deterministic.
+    if len(result.query.metrics) > 1:
+        return _render_multi_metric_answer(
+            result
+        )
+
     if len(result.query.metrics) != 1:
         return None
 
@@ -139,17 +294,26 @@ def render_simple_answer(
 
     if not result.rows:
         return CensusAnswer(
-            answer="No matching census data was returned."
+            answer=(
+                "No matching census data was returned."
+            )
         )
 
-    # One number, such as Pakistan's total population.
-    if len(result.rows) == 1 and not result.query.dimensions:
-        
-        raw_value = result.rows[0].get(metric)
+    # Single scalar result.
+    if (
+        len(result.rows) == 1
+        and not result.query.dimensions
+    ):
+        raw_value = result.rows[0].get(
+            metric
+        )
 
         if raw_value in (None, ""):
             return CensusAnswer(
-                answer="No matching census data was returned."
+                answer=(
+                    "No matching census data "
+                    "was returned."
+                )
             )
 
         value = _format_metric_value(
@@ -157,13 +321,19 @@ def render_simple_answer(
             raw_value,
         )
 
-        context = _describe_query_context(result)
+        context = _describe_query_context(
+            result
+        )
 
-        description = metadata["description"].rstrip(".")
+        description = (
+            metadata["description"]
+            .rstrip(".")
+        )
 
         if context:
             answer_text = (
-                f"{description} for {context}: {value}."
+                f"{description} for "
+                f"{context}: {value}."
             )
         else:
             answer_text = (
@@ -173,10 +343,8 @@ def render_simple_answer(
         return CensusAnswer(
             answer=answer_text
         )
-            
-        
 
-    # Grouped or ranked results, such as districts by population.
+    # Single metric grouped by dimensions.
     if result.query.dimensions:
         lines = []
 
@@ -191,17 +359,30 @@ def render_simple_answer(
 
             labels = []
 
-            for dimension in result.query.dimensions:
-                dimension_value = row.get(dimension)
+            for dimension in (
+                result.query.dimensions
+            ):
+                dimension_value = row.get(
+                    dimension
+                )
 
                 if dimension_value is None:
-                    short_name = dimension.split("__")[-1]
-                    dimension_value = row.get(short_name)
+                    short_name = (
+                        dimension.split("__")[-1]
+                    )
+
+                    dimension_value = row.get(
+                        short_name
+                    )
 
                 if dimension_value is None:
                     return None
 
-                labels.append(str(dimension_value))
+                labels.append(
+                    _display_value(
+                        dimension_value
+                    )
+                )
 
             label = " / ".join(labels)
 
@@ -219,12 +400,27 @@ def render_simple_answer(
                     f"- {label}: {value}"
                 )
 
-        context = _describe_query_context(result)
+        if not lines:
+            return CensusAnswer(
+                answer=(
+                    "No matching census data "
+                    "was returned."
+                )
+            )
 
-        description = metadata["description"].rstrip(".")
+        context = _describe_query_context(
+            result
+        )
+
+        description = (
+            metadata["description"]
+            .rstrip(".")
+        )
 
         if context:
-            heading = f"{description} for {context}:"
+            heading = (
+                f"{description} for {context}:"
+            )
         else:
             heading = f"{description}:"
 
