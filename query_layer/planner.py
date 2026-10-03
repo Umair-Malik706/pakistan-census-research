@@ -1,12 +1,32 @@
 import json
 
 from query_layer.catalog import get_catalog_context
-from query_layer.models import PlannerResponse
+from query_layer.models import (
+    PlannerResponse,
+    QuerySpec,
+)
 
 
-def build_planner_prompt(question: str) -> str:
+def build_planner_prompt(
+    question: str,
+    previous_query: QuerySpec | None = None,
+) -> str:
     catalog = get_catalog_context()
     query_schema = PlannerResponse.model_json_schema()
+
+    if previous_query is None:
+        previous_context = (
+            "PREVIOUS VALIDATED QUERY CONTEXT:\n"
+            "None."
+        )
+    else:
+        previous_context = (
+            "PREVIOUS VALIDATED QUERY CONTEXT:\n"
+            + json.dumps(
+                previous_query.model_dump(),
+                indent=2,
+            )
+        )
 
     return f"""
 You are an analytical query planner for Pakistan Census data.
@@ -214,6 +234,47 @@ comparison:
   right_metric: "urban_population"
 
 END COMPARISON EXAMPLES
+
+CONVERSATIONAL FOLLOW-UP RULES:
+
+1. The previous validated query is CONTEXT ONLY.
+   Never execute or return it automatically.
+
+2. Always return a COMPLETE new PlannerResponse for the current
+   user message.
+
+3. If the current question is self-contained, interpret it on its
+   own. Do not carry fields from the previous query merely because
+   previous context exists.
+
+4. If the current message is clearly an incomplete follow-up such as:
+   - "What about Sindh?"
+   - "Same for Lahore."
+   - "Only show Punjab."
+   - "What about females?"
+   then inherit the analytical intent that the user did not change.
+
+5. Explicit instructions in the current message ALWAYS override the
+   previous query.
+
+6. When a follow-up replaces a geography, replace the conflicting
+   previous geography filter. Do not keep both.
+
+7. When a previous query was grouped by a geography only because the
+   user requested a broad breakdown, and the follow-up narrows the
+   request to one geography such as "Only Punjab", remove that
+   grouping unless the user still asks for a breakdown.
+
+8. Preserve metrics, comparisons, sorting, limits, and grouping from
+   the previous query only when they remain relevant to the follow-up.
+
+9. Never invent a metric, dimension, filter, comparison, ranking, or
+   value that is not allowed by the approved catalog and rules.
+
+10. The final response must be independently executable. It must not
+    rely on phrases such as "same as before" or other implicit state.
+
+{previous_context}
 
 APPROVED ANALYTICAL CATALOG:
 {json.dumps(catalog, indent=2)}

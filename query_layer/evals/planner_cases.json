@@ -95,5 +95,89 @@
     "expected": {
       "status": "unsupported"
     }
+  },
+  {
+    "name": "followup_replace_province",
+    "previous_question": "What is Punjab's urban population?",
+    "question": "What about Sindh?",
+    "expected": {
+      "status": "ready",
+      "metrics": ["urban_population"],
+      "dimensions": [],
+      "filters": [
+        {
+          "field": "geography__province_name",
+          "operator": "=",
+          "value": "Sindh"
+        }
+      ],
+      "order_by": [],
+      "limit": null,
+      "comparison": null
+    }
+  },
+  {
+    "name": "followup_narrow_to_province",
+    "previous_question": "Compare rural and urban population across provinces.",
+    "question": "Only show Punjab.",
+    "expected": {
+      "status": "ready",
+      "metrics": [
+        "rural_population",
+        "urban_population"
+      ],
+      "dimensions": [],
+      "filters": [
+        {
+          "field": "geography__province_name",
+          "operator": "=",
+          "value": "Punjab"
+        }
+      ],
+      "order_by": [],
+      "limit": null,
+      "comparison": null
+    }
+  },
+  {
+    "name": "followup_preserve_ranking",
+    "previous_question": "Which 10 Punjab districts have the largest urban population?",
+    "question": "What about Sindh?",
+    "expected": {
+      "status": "ready",
+      "metrics": ["urban_population"],
+      "dimensions": [
+        "geography__district_name"
+      ],
+      "filters": [
+        {
+          "field": "geography__province_name",
+          "operator": "=",
+          "value": "Sindh"
+        }
+      ],
+      "order_by": [
+        {
+          "field": "urban_population",
+          "direction": "desc"
+        }
+      ],
+      "limit": 10,
+      "comparison": null
+    }
+  },
+  {
+    "name": "followup_self_contained_ignores_context",
+    "previous_question": "What is Punjab's urban population?",
+    "question": "What is Pakistan's female population?",
+    "expected": {
+      "status": "ready",
+      "metrics": ["female_population"],
+      "dimensions": [],
+      "filters": [],
+      "order_by": [],
+      "limit": null,
+      "comparison": null
+    }
   }
 ]

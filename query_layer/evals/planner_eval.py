@@ -34,10 +34,46 @@ def evaluate_case(
     started = time.perf_counter()
 
     try:
+        previous_query = None
+
+        previous_question = case.get(
+            "previous_question"
+        )
+
+        if previous_question is not None:
+            previous_response = plan_question(
+                previous_question,
+                model=model,
+            )
+
+            if (
+                previous_response.status != "ready"
+                or previous_response.query is None
+            ):
+                elapsed = (
+                    time.perf_counter()
+                    - started
+                )
+
+                return (
+                    False,
+                    [
+                        "Previous question did not "
+                        "produce a ready QuerySpec."
+                    ],
+                    elapsed,
+                )
+
+            previous_query = (
+                previous_response.query
+            )
+
         response = plan_question(
             case["question"],
             model=model,
+            previous_query=previous_query,
         )
+
     except Exception as exc:
         elapsed = time.perf_counter() - started
         return False, [f"Planner error: {exc}"], elapsed
@@ -68,6 +104,7 @@ def evaluate_case(
         "filters",
         "order_by",
         "limit",
+        "comparison",
     ):
         if field not in expected:
             continue
