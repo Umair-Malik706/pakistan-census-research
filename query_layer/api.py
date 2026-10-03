@@ -53,7 +53,8 @@ def ask(request: AskRequest) -> AskResponse:
                 interpretation,
                 timings,
             ) = ask_census_with_metadata(
-                request.question
+                request.question,
+                previous_query=request.previous_query,
             )
 
     except Exception as exc:

@@ -85,6 +85,8 @@ class AskRequest(BaseModel):
         max_length=500,
     )
 
+    previous_query: QuerySpec | None = None
+
 
 class AskResponse(BaseModel):
     status: Literal["ready", "unsupported"]

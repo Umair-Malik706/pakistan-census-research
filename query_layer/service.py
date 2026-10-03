@@ -8,6 +8,7 @@ from query_layer.models import (
     PlannerResponse,
     QueryInterpretation,
     QueryResult,
+    QuerySpec,
     QueryTimings,
 )
 from query_layer.providers.ollama_provider import plan_question
@@ -17,6 +18,7 @@ from query_layer.renderer import render_simple_answer
 def _ask_census_core(
     question: str,
     show_timings: bool = False,
+    previous_query: QuerySpec | None = None,
 ) -> tuple[
     PlannerResponse,
     QueryResult | None,
@@ -27,7 +29,10 @@ def _ask_census_core(
     total_started = time.perf_counter()
 
     planner_started = time.perf_counter()
-    plan = plan_question(question)
+    plan = plan_question(
+        question,
+        previous_query=previous_query,
+    )
     planner_seconds = time.perf_counter() - planner_started
 
     if plan.status == "unsupported":
@@ -92,6 +97,7 @@ def _ask_census_core(
 def ask_census(
     question: str,
     show_timings: bool = False,
+    previous_query: QuerySpec | None = None,
 ) -> tuple[
     PlannerResponse,
     QueryResult | None,
@@ -106,6 +112,7 @@ def ask_census(
     ) = _ask_census_core(
         question,
         show_timings=show_timings,
+        previous_query=previous_query,
     )
 
     return plan, result, answer
@@ -114,6 +121,7 @@ def ask_census(
 def ask_census_with_metadata(
     question: str,
     show_timings: bool = False,
+    previous_query: QuerySpec | None = None,
 ) -> tuple[
     PlannerResponse,
     QueryResult | None,
@@ -124,4 +132,5 @@ def ask_census_with_metadata(
     return _ask_census_core(
         question,
         show_timings=show_timings,
+        previous_query=previous_query,
     )
