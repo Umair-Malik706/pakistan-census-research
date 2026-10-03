@@ -108,7 +108,60 @@ def evaluate_case(case: dict) -> None:
                 f"{plan.query.dimensions}"
             ),
         )
+    expected_filters = case.get(
+        "filters"
+    )
 
+    if expected_filters is not None:
+        actual_filters = [
+            query_filter.model_dump()
+            for query_filter in plan.query.filters
+        ]
+
+        if actual_filters != expected_filters:
+            fail(
+                name,
+                (
+                    "filters mismatch: "
+                    f"{actual_filters}"
+                ),
+            )
+
+    expected_order_by = case.get(
+        "order_by"
+    )
+
+    if expected_order_by is not None:
+        actual_order_by = [
+            order.model_dump()
+            for order in plan.query.order_by
+        ]
+
+        if actual_order_by != expected_order_by:
+            fail(
+                name,
+                (
+                    "order_by mismatch: "
+                    f"{actual_order_by}"
+                ),
+            )
+
+    if "limit" in case:
+        expected_limit = case["limit"]
+
+        if plan.query.limit != expected_limit:
+            fail(
+                name,
+                (
+                    f"expected limit "
+                    f"{expected_limit}, "
+                    f"got {plan.query.limit}"
+                ),
+            )
+
+    expected_row_count = case.get(
+        "row_count"
+    )
     expected_row_count = case.get(
         "row_count"
     )
@@ -126,6 +179,64 @@ def evaluate_case(case: dict) -> None:
                 f"got {len(result.rows)}"
             ),
         )
+    expected_rows = case.get(
+        "expected_rows"
+    )
+
+    if expected_rows is not None:
+        for expected_row in expected_rows:
+            matching_rows = [
+                row
+                for row in result.rows
+                if all(
+                    row.get(field) == value
+                    for field, value
+                    in expected_row.items()
+                )
+            ]
+
+            if not matching_rows:
+                fail(
+                    name,
+                    (
+                        "expected result row "
+                        f"not found: {expected_row}"
+                    ),
+                )
+
+    expected_first_row = case.get(
+        "expected_first_row"
+    )
+
+    if expected_first_row is not None:
+        if not result.rows:
+            fail(
+                name,
+                "expected a first result row",
+            )
+
+        actual_first_row = result.rows[0]
+
+        for field, expected in (
+            expected_first_row.items()
+        ):
+            actual = actual_first_row.get(
+                field
+            )
+
+            if actual != expected:
+                fail(
+                    name,
+                    (
+                        "first row mismatch for "
+                        f"{field}: expected "
+                        f"{expected}, got {actual}"
+                    ),
+                )
+
+    expected_value = case.get(
+        "expected_value"
+    )
 
     expected_value = case.get(
         "expected_value"

@@ -14,15 +14,37 @@
     "status": "ready",
     "metrics": ["total_population"],
     "dimensions": [],
+    "filters": [
+      {
+        "field": "geography__district_name",
+        "operator": "=",
+        "value": "Rawalpindi"
+      },
+      {
+        "field": "age__age_lower",
+        "operator": ">=",
+        "value": 13
+      },
+      {
+        "field": "age__age_lower",
+        "operator": "<=",
+        "value": 19
+      }
+    ],
+    "order_by": [],
+    "limit": null,
     "expected_value": "838230",
     "answer_contains": ["838,230"]
   },
+
   {
     "name": "district_alias_pindi",
     "question": "What is the population of Pindi?",
     "status": "ready",
     "metrics": ["total_population"],
     "dimensions": [],
+    "order_by": [],
+    "limit": null,
     "expected_value": "6058540",
     "answer_contains": ["6,058,540"]
   },
@@ -45,7 +67,19 @@
       "geography__province_name"
     ],
     "row_count": 5,
-    "comparison": null
+    "comparison": null,
+    "expected_rows": [
+      {
+        "geography__province_name": "Punjab",
+        "rural_population": "75620438",
+        "urban_population": "51712867"
+      },
+      {
+        "geography__province_name": "Sindh",
+        "rural_population": "25623864",
+        "urban_population": "30014545"
+      }
+    ]
   },
   {
     "name": "punjab_male_female_difference",
@@ -82,6 +116,18 @@
       "left_metric": "rural_population",
       "right_metric": "urban_population"
     },
+    "expected_rows": [
+      {
+        "geography__province_name": "Punjab",
+        "rural_population": "75620438",
+        "urban_population": "51712867"
+      },
+      {
+        "geography__province_name": "Sindh",
+        "rural_population": "25623864",
+        "urban_population": "30014545"
+      }
+    ],
     "answer_contains": [
       "Punjab",
       "Sindh"
@@ -97,7 +143,25 @@
     "dimensions": [
       "geography__district_name"
     ],
-    "row_count": 10
+    "filters": [
+      {
+        "field": "geography__province_name",
+        "operator": "=",
+        "value": "Punjab"
+      }
+    ],
+    "order_by": [
+      {
+        "field": "urban_population",
+        "direction": "desc"
+      }
+    ],
+    "limit": 10,
+    "row_count": 10,
+    "expected_first_row": {
+      "geography__district_name": "LAHORE",
+      "urban_population": "12978661"
+    }
   },
   {
     "name": "unsupported_poverty",
