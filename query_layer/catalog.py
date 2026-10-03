@@ -88,6 +88,7 @@ APPROVED_DIMENSIONS = {
             "Balochistan",
             "Islamabad Capital Territory",
         ],
+        "resolve_values": True,
 },
     "geography__district_name": {
         "model": "dim_geography",

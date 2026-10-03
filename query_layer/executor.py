@@ -11,9 +11,15 @@ from query_layer.provenance import (
 from query_layer.validator import validate_query_spec
 from query_layer.geography_resolver import (
     resolve_district_name,
+    resolve_province_name,
+    
 )
 
 def _format_value(value):
+    if value is None:
+        raise ValueError(
+            "Filter value resolved to None."
+        )
     if isinstance(value, str):
         return "'" + value.replace("'", "''") + "'"
 
@@ -31,18 +37,26 @@ def _normalize_filter_value(
     value = query_filter.value
 
     def normalize_single(item):
+        if not isinstance(item, str):
+            return item
+
         if (
             query_filter.field
             == "geography__district_name"
-            and isinstance(item, str)
         ):
             return resolve_district_name(item)
 
-        if transform == "upper" and isinstance(item, str):
+        if (
+            query_filter.field
+            == "geography__province_name"
+        ):
+            return resolve_province_name(item)
+
+        if transform == "upper":
             return item.upper()
 
         return item
-
+    
     if isinstance(value, list):
         return [
             normalize_single(item)
@@ -50,7 +64,6 @@ def _normalize_filter_value(
         ]
 
     return normalize_single(value)
-
 
 def _compile_filter(
     query_filter: QueryFilter,

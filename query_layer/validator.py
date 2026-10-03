@@ -31,25 +31,30 @@ def validate_query_spec(spec: QuerySpec) -> QuerySpec:
 
         allowed_values = metadata.get("allowed_values")
 
-        if not allowed_values:
-            continue
-
-        values = (
-            query_filter.value
-            if isinstance(query_filter.value, list)
-            else [query_filter.value]
-        )
-
-        invalid_values = [
-            value
-            for value in values
-            if value not in allowed_values
-        ]
-
-        if invalid_values:
-            invalid_filter_values.append(
-                f"{query_filter.field}: {invalid_values}"
+        if (
+            allowed_values
+            and not metadata.get(
+                "resolve_values",
+                False,
             )
+        ):
+            
+            values = (
+                query_filter.value
+                if isinstance(query_filter.value, list)
+                else [query_filter.value]
+            )
+
+            invalid_values = [
+                value
+                for value in values
+                if value not in allowed_values
+            ]
+
+            if invalid_values:
+                invalid_filter_values.append(
+                    f"{query_filter.field}: {invalid_values}"
+                )
 
     selected_fields = set(spec.metrics) | set(spec.dimensions)
 
