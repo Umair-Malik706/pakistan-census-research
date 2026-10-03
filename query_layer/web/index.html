@@ -121,6 +121,12 @@
             required
         >
         <button type="submit">Ask</button>
+        <button
+            id="new-conversation"
+            type="button"
+        >
+            New conversation
+        </button>
     </form>
 
     <p id="status"></p>
@@ -162,7 +168,11 @@
     <script>
         const form = document.getElementById("ask-form");
         const questionInput = document.getElementById("question");
-        const status = document.getElementById("status");
+        const status = document.getElementById("status")
+        const newConversationButton =
+            document.getElementById("new-conversation");
+        
+        let previousQuery = null;
 
         const answerCard = document.getElementById("answer-card");
         const answerElement = document.getElementById("answer");
@@ -183,6 +193,26 @@
 
         const planCard = document.getElementById("plan-card");
         const planElement = document.getElementById("plan");
+    
+        newConversationButton.addEventListener(
+            "click",
+            () => {
+                previousQuery = null;
+
+                questionInput.value = "";
+
+                answerCard.classList.add("hidden");
+                interpretationCard.classList.add("hidden");
+                performanceCard.classList.add("hidden");
+                sourcesCard.classList.add("hidden");
+                planCard.classList.add("hidden");
+
+                status.textContent =
+                    "Started a new conversation.";
+
+                questionInput.focus();
+            }
+        );
 
         form.addEventListener("submit", async (event) => {
             event.preventDefault();
@@ -208,7 +238,8 @@
                         "Content-Type": "application/json"
                     },
                     body: JSON.stringify({
-                        question: question
+                        question: question,
+                        previous_query: previousQuery
                     })
                 });
 
@@ -223,18 +254,21 @@
                 status.textContent = "";
 
                 if (data.status === "unsupported") {
-                    answerElement.textContent =
-                        data.plan.reason || "Unsupported question.";
-
-                    timingElement.textContent =
-                        `Completed in ${data.elapsed_seconds.toFixed(2)}s`;
-
-                    answerCard.classList.remove("hidden");
-                    return;
-                }
-
                 answerElement.textContent =
-                    data.answer?.answer || "No answer returned.";
+                    data.plan.reason || "Unsupported question.";
+
+                timingElement.textContent =
+                    `Completed in ${data.elapsed_seconds.toFixed(2)}s`;
+
+                answerCard.classList.remove("hidden");
+                previousQuery = null;
+                return;
+            }
+
+            previousQuery = data.plan?.query || null;
+
+            answerElement.textContent =
+                data.answer?.answer || "No answer returned.";
 
                 timingElement.textContent =
                     `Completed in ${data.elapsed_seconds.toFixed(2)}s`;
