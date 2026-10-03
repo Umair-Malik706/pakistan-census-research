@@ -1,0 +1,107 @@
+[
+  {
+    "name": "national_total",
+    "question": "What is Pakistan's total population?",
+    "status": "ready",
+    "metrics": ["total_population"],
+    "dimensions": [],
+    "expected_value": "240458089",
+    "answer_contains": ["240,458,089"]
+  },
+  {
+    "name": "teenage_rawalpindi",
+    "question": "What is the teenage population in Rawalpindi?",
+    "status": "ready",
+    "metrics": ["total_population"],
+    "dimensions": [],
+    "expected_value": "838230",
+    "answer_contains": ["838,230"]
+  },
+  {
+    "name": "district_alias_pindi",
+    "question": "What is the population of Pindi?",
+    "status": "ready",
+    "metrics": ["total_population"],
+    "dimensions": [],
+    "expected_value": "6058540",
+    "answer_contains": ["6,058,540"]
+  },
+  {
+    "name": "province_alias_kpk",
+    "question": "What is the population of KPK?",
+    "status": "ready",
+    "metrics": ["total_population"],
+    "dimensions": []
+  },
+  {
+    "name": "rural_urban_by_province",
+    "question": "Compare rural and urban population across provinces.",
+    "status": "ready",
+    "metrics": [
+      "rural_population",
+      "urban_population"
+    ],
+    "dimensions": [
+      "geography__province_name"
+    ],
+    "row_count": 5,
+    "comparison": null
+  },
+  {
+    "name": "punjab_male_female_difference",
+    "question": "How much larger is Punjab's male population than its female population?",
+    "status": "ready",
+    "metrics": [
+      "male_population",
+      "female_population"
+    ],
+    "dimensions": [],
+    "comparison": {
+      "operation": "difference",
+      "left_metric": "male_population",
+      "right_metric": "female_population"
+    },
+    "answer_contains": [
+      "3,236,098"
+    ]
+  },
+  {
+    "name": "grouped_rural_urban_difference",
+    "question": "For each province, how much larger is rural population than urban population?",
+    "status": "ready",
+    "metrics": [
+      "rural_population",
+      "urban_population"
+    ],
+    "dimensions": [
+      "geography__province_name"
+    ],
+    "row_count": 5,
+    "comparison": {
+      "operation": "difference",
+      "left_metric": "rural_population",
+      "right_metric": "urban_population"
+    },
+    "answer_contains": [
+      "Punjab",
+      "Sindh"
+    ]
+  },
+  {
+    "name": "top_urban_punjab",
+    "question": "Which 10 Punjab districts have the largest urban population?",
+    "status": "ready",
+    "metrics": [
+      "urban_population"
+    ],
+    "dimensions": [
+      "geography__district_name"
+    ],
+    "row_count": 10
+  },
+  {
+    "name": "unsupported_poverty",
+    "question": "What is the poverty rate in Punjab?",
+    "status": "unsupported"
+  }
+]

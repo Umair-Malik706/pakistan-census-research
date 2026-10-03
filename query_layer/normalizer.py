@@ -5,11 +5,13 @@ from query_layer.models import (
     PlannerResponse,
 )
 
+
 AGE_METRIC_MAP = {
     "0-14": "population_age_0_14",
     "15-64": "population_age_15_64",
     "65+": "population_age_65_plus",
 }
+
 
 COMPARISON_METRIC_TERMS = {
     "male_population": (
@@ -125,49 +127,259 @@ def _infer_comparison(
         left_metric=left_metric,
         right_metric=right_metric,
     )
+
+
+def _normalize_broad_age_metric(
+    response: PlannerResponse,
+) -> None:
+    if response.query is None:
+        return
+
+    query = response.query
+
+    # Case 1:
+    # The planner already selected a canonical age metric
+    # but also added a redundant age filter.
+    canonical_metric_filters = {
+        "population_age_0_14": {
+            (
+                "age__age_group_broad",
+                "=",
+                "0-14",
+            ),
+            (
+                "age__age_lower",
+                ">=",
+                0,
+            ),
+            (
+                "age__age_lower",
+                "<=",
+                14,
+            ),
+            (
+                "age__age_lower",
+                "<",
+                15,
+            ),
+        },
+        "population_age_15_64": {
+            (
+                "age__age_group_broad",
+                "=",
+                "15-64",
+            ),
+            (
+                "age__age_lower",
+                ">=",
+                15,
+            ),
+            (
+                "age__age_lower",
+                "<=",
+                64,
+            ),
+            (
+                "age__age_lower",
+                "<",
+                65,
+            ),
+        },
+        "population_age_65_plus": {
+            (
+                "age__age_group_broad",
+                "=",
+                "65+",
+            ),
+            (
+                "age__age_lower",
+                ">=",
+                65,
+            ),
+        },
+    }
+
+    if (
+        len(query.metrics) == 1
+        and query.metrics[0]
+        in canonical_metric_filters
+    ):
+        redundant_filters = (
+            canonical_metric_filters[
+                query.metrics[0]
+            ]
+        )
+
+        query.filters = [
+            query_filter
+            for query_filter in query.filters
+            if (
+                query_filter.field,
+                query_filter.operator,
+                query_filter.value,
+            )
+            not in redundant_filters
+        ]
+
+        query.dimensions = [
+            dimension
+            for dimension in query.dimensions
+            if dimension not in {
+                "age__age_group_broad",
+                "age__age_lower",
+            }
+        ]
+
+        return
+
+    # The remaining conversions apply only when the
+    # planner started with total_population.
+    if query.metrics != ["total_population"]:
+        return
+
+    # Case 2:
+    # Broad age-group filter -> canonical metric.
+    broad_age_filters = [
+        query_filter
+        for query_filter in query.filters
+        if (
+            query_filter.field
+            == "age__age_group_broad"
+            and query_filter.operator == "="
+        )
+    ]
+
+    if len(broad_age_filters) == 1:
+        age_filter = broad_age_filters[0]
+
+        canonical_metric = AGE_METRIC_MAP.get(
+            str(age_filter.value)
+        )
+
+        if canonical_metric:
+            query.metrics = [
+                canonical_metric
+            ]
+
+            query.filters = [
+                query_filter
+                for query_filter in query.filters
+                if query_filter is not age_filter
+            ]
+
+            query.dimensions = [
+                dimension
+                for dimension in query.dimensions
+                if dimension
+                != "age__age_group_broad"
+            ]
+
+            return
+
+    # Case 3:
+    # Numeric age filters that exactly match one of
+    # our canonical broad-age definitions.
+    numeric_age_filters = [
+        query_filter
+        for query_filter in query.filters
+        if query_filter.field == "age__age_lower"
+    ]
+
+    if not numeric_age_filters:
+        return
+
+    filter_pairs = {
+        (
+            query_filter.operator,
+            query_filter.value,
+        )
+        for query_filter in numeric_age_filters
+    }
+
+    canonical_metric = None
+
+    if filter_pairs == {
+        (">=", 65),
+    }:
+        canonical_metric = (
+            "population_age_65_plus"
+        )
+
+    elif filter_pairs in (
+        {
+            (">=", 0),
+            ("<=", 14),
+        },
+        {
+            ("<=", 14),
+        },
+        {
+            ("<", 15),
+        },
+    ):
+        canonical_metric = (
+            "population_age_0_14"
+        )
+
+    elif filter_pairs in (
+        {
+            (">=", 15),
+            ("<=", 64),
+        },
+        {
+            (">=", 15),
+            ("<", 65),
+        },
+    ):
+        canonical_metric = (
+            "population_age_15_64"
+        )
+
+    if canonical_metric is None:
+        return
+
+    query.metrics = [
+        canonical_metric
+    ]
+
+    query.filters = [
+        query_filter
+        for query_filter in query.filters
+        if query_filter
+        not in numeric_age_filters
+    ]
+
+    query.dimensions = [
+        dimension
+        for dimension in query.dimensions
+        if dimension != "age__age_lower"
+    ]
+
+
 def normalize_plan(
     question: str,
     response: PlannerResponse,
 ) -> PlannerResponse:
-    if response.status != "ready" or response.query is None:
+    if (
+        response.status != "ready"
+        or response.query is None
+    ):
         return response
 
+    _normalize_broad_age_metric(
+        response
+    )
+
     query = response.query
+
     if query.comparison is None:
         query.comparison = _infer_comparison(
             question,
             query.metrics,
         )
 
+    question_lower = question.lower()
 
-    # Prefer dedicated age metrics over total_population + age filter.
-    if query.metrics == ["total_population"]:
-        age_filters = [
-            query_filter
-            for query_filter in query.filters
-            if query_filter.field == "age__age_group_broad"
-            and query_filter.operator == "="
-        ]
-
-        if len(age_filters) == 1:
-            age_value = str(age_filters[0].value)
-
-            if age_value in AGE_METRIC_MAP:
-                query.metrics = [AGE_METRIC_MAP[age_value]]
-
-                query.filters = [
-                    query_filter
-                    for query_filter in query.filters
-                    if query_filter is not age_filters[0]
-                ]
-
-                query.dimensions = [
-                    dimension
-                    for dimension in query.dimensions
-                    if dimension != "age__age_group_broad"
-                ]
-
-    # Recover an explicitly requested ranking limit if the model omitted it.
     ranking_words = (
         "largest",
         "highest",
@@ -181,8 +393,6 @@ def normalize_plan(
         "ranking",
     )
 
-    question_lower = question.lower()
-
     is_ranking_question = any(
         re.search(
             rf"\b{re.escape(word)}\b",
@@ -191,12 +401,12 @@ def normalize_plan(
         for word in ranking_words
     )
 
-    # Remove sorting invented by the planner when the
-    # user did not actually ask for a ranking.
+    # Remove sorting invented by the planner when
+    # the user didn't request a ranking.
     if not is_ranking_question:
         query.order_by = []
 
-    # Preserve explicit ranking limits such as "top 10".
+    # Recover an explicit limit such as "top 10".
     if (
         is_ranking_question
         and query.limit is None
@@ -207,5 +417,8 @@ def normalize_plan(
         )
 
         if match:
-            query.limit = int(match.group(1))
+            query.limit = int(
+                match.group(1)
+            )
+
     return response
