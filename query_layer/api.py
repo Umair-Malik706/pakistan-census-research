@@ -6,7 +6,15 @@ from query_layer.models import (
     AskRequest,
     AskResponse,
 )
+import traceback
 from query_layer.service import ask_census
+import time
+from pathlib import Path
+
+from fastapi.responses import FileResponse
+
+WEB_DIR = Path(__file__).resolve().parent / "web"
+INDEX_FILE = WEB_DIR / "index.html"
 
 
 app = FastAPI(
@@ -21,6 +29,10 @@ app = FastAPI(
 query_lock = Lock()
 
 
+@app.get("/")
+def home() -> FileResponse:
+    return FileResponse(INDEX_FILE)
+
 @app.get("/health")
 def health() -> dict[str, str]:
     return {"status": "ok"}
@@ -31,6 +43,7 @@ def health() -> dict[str, str]:
     response_model=AskResponse,
 )
 def ask(request: AskRequest) -> AskResponse:
+    started = time.perf_counter()
     try:
         with query_lock:
             plan, result, answer = ask_census(
@@ -38,14 +51,19 @@ def ask(request: AskRequest) -> AskResponse:
             )
 
     except Exception as exc:
+        traceback.print_exc()
+
         raise HTTPException(
             status_code=500,
             detail="Census query failed.",
         ) from exc
+
+    elapsed_seconds = time.perf_counter() - started
 
     return AskResponse(
         status=plan.status,
         plan=plan,
         result=result,
         answer=answer,
+        elapsed_seconds=elapsed_seconds,
     )

@@ -50,7 +50,29 @@ CANONICAL PLANNING RULES:
 11. If the requested concept is not in the approved catalog,
     return status "unsupported".
 
-12. Do not write SQL and do not answer the analytical question yourself.
+12. Do not write SQL and do not answer the analytical question yourself.- age__age_lower is FILTER-ONLY. Never put it in dimensions.
+
+- Interpret "teenage" or "teenager" as ages 13 through 19 inclusive:
+  age__age_lower >= 13
+  age__age_lower <= 19
+
+- For an explicit range such as "ages 18 to 24", use inclusive filters:
+  age__age_lower >= 18
+  age__age_lower <= 24
+
+- "under X" or "younger than X" means:
+  age__age_lower < X
+
+- "age X" means:
+  age__age_lower = X
+  but exact age 75 or above is unsupported because the source groups
+  everyone aged 75 and above into one 75+ category.
+
+- "X and older" can use:
+  age__age_lower >= X
+  when X is 75 or below.
+
+- Questions requiring exact age distinctions above age 74 are unsupported.
 
 EXAMPLES:
 
@@ -97,6 +119,25 @@ Which province has the highest literacy rate?
 Correct planning behavior:
 - status: unsupported
 - literacy is not an approved metric
+
+Question:
+What is the teenage population in Rawalpindi?
+
+Ready query:
+metrics: ["total_population"]
+dimensions: []
+filters:
+  - field: "geography__district_name"
+    operator: "="
+    value: "Rawalpindi"
+  - field: "age__age_lower"
+    operator: ">="
+    value: 13
+  - field: "age__age_lower"
+    operator: "<="
+    value: 19
+order_by: []
+limit: null
 
 APPROVED ANALYTICAL CATALOG:
 {json.dumps(catalog, indent=2)}

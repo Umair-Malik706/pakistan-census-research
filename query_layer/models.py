@@ -64,3 +64,4 @@ class AskResponse(BaseModel):
     plan: PlannerResponse
     result: QueryResult | None = None
     answer: CensusAnswer | None = None
+    elapsed_seconds: float

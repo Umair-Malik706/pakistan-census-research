@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+    <title>Pakistan Census Research</title>
+
+    <style>
+        body {
+            font-family: system-ui, sans-serif;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 48px 24px;
+            line-height: 1.5;
+        }
+
+        h1 {
+            margin-bottom: 4px;
+        }
+
+        .subtitle {
+            color: #666;
+            margin-top: 0;
+            margin-bottom: 32px;
+        }
+
+        form {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 24px;
+        }
+
+        input {
+            flex: 1;
+            padding: 12px;
+            font-size: 16px;
+        }
+
+        button {
+            padding: 12px 20px;
+            cursor: pointer;
+        }
+
+        .card {
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 16px;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        #answer {
+            white-space: pre-wrap;
+        }
+
+        pre {
+            overflow-x: auto;
+            background: #f6f6f6;
+            padding: 16px;
+            border-radius: 6px;
+        }
+
+        .meta {
+            color: #666;
+            font-size: 14px;
+        }
+
+        .source {
+            margin-bottom: 12px;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Pakistan Census Research</h1>
+
+    <p class="subtitle">
+        Ask questions against validated Pakistan Census analytical models.
+    </p>
+
+    <form id="ask-form">
+        <input
+            id="question"
+            type="text"
+            placeholder="e.g. Which 10 Punjab districts have the largest urban population?"
+            required
+        >
+        <button type="submit">Ask</button>
+    </form>
+
+    <p id="status"></p>
+
+    <section id="answer-card" class="card hidden">
+        <h2>Answer</h2>
+        <div id="answer"></div>
+        <p id="timing" class="meta"></p>
+    </section>
+
+    <section id="sources-card" class="card hidden">
+        <h2>PBS Sources</h2>
+        <div id="sources"></div>
+    </section>
+
+    <section id="plan-card" class="card hidden">
+        <h2>Query Plan</h2>
+        <pre id="plan"></pre>
+    </section>
+
+    <script>
+        const form = document.getElementById("ask-form");
+        const questionInput = document.getElementById("question");
+        const status = document.getElementById("status");
+
+        const answerCard = document.getElementById("answer-card");
+        const answerElement = document.getElementById("answer");
+        const timingElement = document.getElementById("timing");
+
+        const sourcesCard = document.getElementById("sources-card");
+        const sourcesElement = document.getElementById("sources");
+
+        const planCard = document.getElementById("plan-card");
+        const planElement = document.getElementById("plan");
+
+        form.addEventListener("submit", async (event) => {
+            event.preventDefault();
+
+            const question = questionInput.value.trim();
+
+            if (!question) {
+                return;
+            }
+
+            status.textContent = "Running census query...";
+
+            answerCard.classList.add("hidden");
+            sourcesCard.classList.add("hidden");
+            planCard.classList.add("hidden");
+
+            try {
+                const response = await fetch("/ask", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({
+                        question: question
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error(
+                        `Request failed: ${response.status}`
+                    );
+                }
+
+                const data = await response.json();
+
+                status.textContent = "";
+
+                if (data.status === "unsupported") {
+                    answerElement.textContent =
+                        data.plan.reason || "Unsupported question.";
+
+                    timingElement.textContent =
+                        `Completed in ${data.elapsed_seconds.toFixed(2)}s`;
+
+                    answerCard.classList.remove("hidden");
+                    return;
+                }
+
+                answerElement.textContent =
+                    data.answer?.answer || "No answer returned.";
+
+                timingElement.textContent =
+                    `Completed in ${data.elapsed_seconds.toFixed(2)}s`;
+
+                answerCard.classList.remove("hidden");
+
+                const sources =
+                    data.result?.provenance?.pbs_sources || [];
+
+                sourcesElement.replaceChildren();
+
+                for (const source of sources) {
+                    const container = document.createElement("div");
+                    container.className = "source";
+
+                    const title = document.createElement("strong");
+                    title.textContent =
+                        `${source.region} — ${source.local_filename}`;
+
+                    const link = document.createElement("a");
+                    link.href = source.file_url;
+                    link.textContent = source.file_url;
+                    link.target = "_blank";
+                    link.rel = "noopener noreferrer";
+
+                    container.appendChild(title);
+                    container.appendChild(document.createElement("br"));
+                    container.appendChild(link);
+
+                    sourcesElement.appendChild(container);
+                }
+
+                if (sources.length > 0) {
+                    sourcesCard.classList.remove("hidden");
+                }
+
+                planElement.textContent =
+                    JSON.stringify(data.plan.query, null, 2);
+
+                planCard.classList.remove("hidden");
+
+            } catch (error) {
+                status.textContent =
+                    `Error: ${error.message}`;
+            }
+        });
+    </script>
+</body>
+</html>

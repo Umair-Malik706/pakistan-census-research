@@ -92,10 +92,12 @@ APPROVED_DIMENSIONS = {
     "geography__district_name": {
         "model": "dim_geography",
         "description": "District or district-equivalent name.",
+        "value_transform": "upper",
     },
     "geography__geography_name": {
         "model": "dim_geography",
         "description": "Name of the geographic entity.",
+        "value_transform": "upper",
     },
     "geography__geography_level": {
         "model": "dim_geography",
@@ -139,6 +141,17 @@ APPROVED_DIMENSIONS = {
             "female",
             "transgender",
         ],
+    },
+    "age__age_lower": {
+        "model": "dim_age",
+        "description": (
+            "Numeric lower bound of the census age category. "
+            "For ages 0-74 it is the exact single-year age. "
+            "The final 75+ category has lower bound 75. "
+            "Use for numeric age filtering only."
+        ),
+        "unit": "years",
+        "filter_only": True,
     },
 }
 

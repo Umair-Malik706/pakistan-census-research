@@ -70,6 +70,23 @@ def validate_query_spec(spec: QuerySpec) -> QuerySpec:
         errors.append(
             f"Unsupported dimensions: {', '.join(unsupported_dimensions)}"
         )
+    invalid_group_by_dimensions = [
+        dimension
+        for dimension in spec.dimensions
+        if (
+            dimension in APPROVED_DIMENSIONS
+            and APPROVED_DIMENSIONS[dimension].get(
+                "filter_only",
+                False,
+            )
+        )
+    ]
+
+    if invalid_group_by_dimensions:
+        errors.append(
+            "Filter-only dimensions cannot be grouped: "
+            + ", ".join(invalid_group_by_dimensions)
+        )
 
     if unsupported_filters:
         errors.append(

@@ -90,7 +90,7 @@ models:
         description: Original PBS age label.
         dimension:
           type: categorical
-
+      
       - name: age_type
         description: Type of analytical age bucket.
         data_tests:
@@ -105,9 +105,14 @@ models:
         description: Exact age in completed years where applicable.
 
       - name: age_lower
-        description: Lower bound of the age bucket.
+        description: >
+          Lower bound of the census age category. For single-year
+          ages 0 through 74 this is the exact age. The 75+ category
+          has a lower bound of 75.
         data_tests:
           - not_null
+        dimension:
+          type: categorical
 
       - name: age_upper
         description: >
@@ -473,7 +478,7 @@ models:
           - name: female_population
             alias: female_total
         
-        name: population_age_65_plus
+      - name: population_age_65_plus
         description: Total population aged 65 years and above.
         label: Population Age 65+
         type: derived
@@ -483,6 +488,7 @@ models:
             alias: population_65_plus
             filter: |
               {{ Dimension('age__age_group_broad') }} = '65+'
+
       - name: population_age_0_14
         description: Total population aged 0 to 14 years.
         label: Population Age 0-14

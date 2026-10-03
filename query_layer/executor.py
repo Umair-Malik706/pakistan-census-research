@@ -17,13 +17,40 @@ def _format_value(value):
 
     return str(value)
 
+def _normalize_filter_value(
+    query_filter: QueryFilter,
+):
+    metadata = APPROVED_DIMENSIONS.get(
+        query_filter.field,
+        {},
+    )
+
+    transform = metadata.get("value_transform")
+    value = query_filter.value
+
+    def normalize_single(item):
+        if transform == "upper" and isinstance(item, str):
+            return item.upper()
+
+        return item
+
+    if isinstance(value, list):
+        return [
+            normalize_single(item)
+            for item in value
+        ]
+
+    return normalize_single(value)
+
 
 def _compile_filter(
     query_filter: QueryFilter,
 ) -> str:
     field = query_filter.field
     operator = query_filter.operator
-    value = query_filter.value
+    value = _normalize_filter_value(
+        query_filter
+    )
 
     dimension = "{{ Dimension('" + field + "') }}"
 

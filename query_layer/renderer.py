@@ -40,10 +40,13 @@ def render_simple_answer(
 
     # One number, such as Pakistan's total population.
     if len(result.rows) == 1 and not result.query.dimensions:
+        
         raw_value = result.rows[0].get(metric)
 
-        if raw_value is None:
-            return None
+        if raw_value in (None, ""):
+            return CensusAnswer(
+                answer="No matching census data was returned."
+            )
 
         value = _format_metric_value(
             metric,
@@ -67,8 +70,8 @@ def render_simple_answer(
         ):
             raw_value = row.get(metric)
 
-            if raw_value is None:
-                return None
+            if raw_value in (None, ""):
+                continue
 
             labels = []
 
