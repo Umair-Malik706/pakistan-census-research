@@ -62,15 +62,37 @@ class CensusAnswer(BaseModel):
     answer: str
     notes: list[str] = Field(default_factory=list)
 
+
+class QueryInterpretation(BaseModel):
+    metrics: list[str] = Field(default_factory=list)
+    filters: list[str] = Field(default_factory=list)
+    grouping: list[str] = Field(default_factory=list)
+    comparison: str | None = None
+    sorting: list[str] = Field(default_factory=list)
+    limit: int | None = None
+
+
+class QueryTimings(BaseModel):
+    planner_seconds: float
+    query_seconds: float | None = None
+    answer_seconds: float | None = None
+    total_seconds: float
+
+
 class AskRequest(BaseModel):
     question: str = Field(
         min_length=1,
         max_length=500,
     )
 
+
 class AskResponse(BaseModel):
     status: Literal["ready", "unsupported"]
     plan: PlannerResponse
     result: QueryResult | None = None
     answer: CensusAnswer | None = None
+
+    interpretation: QueryInterpretation | None = None
+    timings: QueryTimings | None = None
+
     elapsed_seconds: float

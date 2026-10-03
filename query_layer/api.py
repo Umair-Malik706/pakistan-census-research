@@ -7,7 +7,7 @@ from query_layer.models import (
     AskResponse,
 )
 import traceback
-from query_layer.service import ask_census
+from query_layer.service import ask_census_with_metadata
 import time
 from pathlib import Path
 
@@ -46,7 +46,13 @@ def ask(request: AskRequest) -> AskResponse:
     started = time.perf_counter()
     try:
         with query_lock:
-            plan, result, answer = ask_census(
+            (
+                plan,
+                result,
+                answer,
+                interpretation,
+                timings,
+            ) = ask_census_with_metadata(
                 request.question
             )
 
@@ -65,5 +71,7 @@ def ask(request: AskRequest) -> AskResponse:
         plan=plan,
         result=result,
         answer=answer,
+        interpretation=interpretation,
+        timings=timings,
         elapsed_seconds=elapsed_seconds,
     )
