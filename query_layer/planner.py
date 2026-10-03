@@ -138,6 +138,63 @@ filters:
     value: 19
 order_by: []
 limit: null
+END AGE EXAMPLE
+
+- A generic request to "compare" metrics does NOT require comparative
+  arithmetic. Return both metrics with comparison = null.
+
+- For "how much larger", "how much more", "how much smaller", or
+  "what is the difference between", use comparison.operation =
+  "difference".
+
+- For "what percentage higher", "what percent higher", "what percentage
+  lower", or equivalent relative-difference wording, use
+  comparison.operation = "percent_change".
+
+- percent_change means:
+  ((left_metric - right_metric) / right_metric) * 100
+
+- left_metric is the quantity being compared TO the right_metric baseline.
+
+- Never invent a comparison operation unless the user explicitly asks
+  for arithmetic between the metrics.
+
+EXAMPLES:
+Question:
+How much larger is Punjab's male population than its female population?
+
+Ready query:
+metrics: ["male_population", "female_population"]
+dimensions: []
+filters:
+  - field: "geography__province_name"
+    operator: "="
+    value: "Punjab"
+order_by: []
+limit: null
+comparison:
+  operation: "difference"
+  left_metric: "male_population"
+  right_metric: "female_population"
+
+Question:
+What percentage higher is Sindh's urban population than its rural population?
+
+Ready query:
+metrics: ["urban_population", "rural_population"]
+dimensions: []
+filters:
+  - field: "geography__province_name"
+    operator: "="
+    value: "Sindh"
+order_by: []
+limit: null
+comparison:
+  operation: "percent_change"
+  left_metric: "urban_population"
+  right_metric: "rural_population"
+
+END EXAMPLES
 
 APPROVED ANALYTICAL CATALOG:
 {json.dumps(catalog, indent=2)}

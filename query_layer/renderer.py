@@ -275,12 +275,150 @@ def _render_multi_metric_answer(
         )
     )
 
+def _render_comparison_answer(
+    result: QueryResult,
+) -> CensusAnswer:
+    comparison = result.query.comparison
+
+    if comparison is None:
+        raise ValueError(
+            "Comparison specification is missing."
+        )
+
+    if len(result.rows) != 1:
+        return CensusAnswer(
+            answer=(
+                "Comparative arithmetic currently "
+                "requires one aggregate result."
+            )
+        )
+
+    row = result.rows[0]
+
+    left_raw = row.get(
+        comparison.left_metric
+    )
+    right_raw = row.get(
+        comparison.right_metric
+    )
+
+    if (
+        left_raw in (None, "")
+        or right_raw in (None, "")
+    ):
+        return CensusAnswer(
+            answer=(
+                "No matching census data was returned."
+            )
+        )
+
+    left_value = float(
+        str(left_raw).replace(",", "")
+    )
+    right_value = float(
+        str(right_raw).replace(",", "")
+    )
+
+    left_name = _metric_display_name(
+        comparison.left_metric
+    )
+    right_name = _metric_display_name(
+        comparison.right_metric
+    )
+
+    context = _describe_query_context(
+        result
+    )
+
+    prefix = (
+        f"{context}: "
+        if context
+        else ""
+    )
+
+    if comparison.operation == "difference":
+        difference = left_value - right_value
+
+        if difference == 0:
+            return CensusAnswer(
+                answer=(
+                    f"{prefix}{left_name} and "
+                    f"{right_name} are equal."
+                )
+            )
+
+        formatted_difference = (
+            _format_metric_value(
+                comparison.left_metric,
+                str(abs(difference)),
+            )
+        )
+
+        direction = (
+            "higher"
+            if difference > 0
+            else "lower"
+        )
+
+        return CensusAnswer(
+            answer=(
+                f"{prefix}{left_name} is "
+                f"{formatted_difference} "
+                f"{direction} than {right_name}."
+            )
+        )
+
+    if comparison.operation == "percent_change":
+        if right_value == 0:
+            return CensusAnswer(
+                answer=(
+                    f"{prefix}A percentage comparison "
+                    f"cannot be calculated because "
+                    f"{right_name} is zero."
+                )
+            )
+
+        percentage = (
+            (left_value - right_value)
+            / right_value
+            * 100
+        )
+
+        if percentage == 0:
+            return CensusAnswer(
+                answer=(
+                    f"{prefix}{left_name} and "
+                    f"{right_name} are equal."
+                )
+            )
+
+        direction = (
+            "higher"
+            if percentage > 0
+            else "lower"
+        )
+
+        return CensusAnswer(
+            answer=(
+                f"{prefix}{left_name} is "
+                f"{abs(percentage):.2f}% "
+                f"{direction} than {right_name}."
+            )
+        )
+
+    raise ValueError(
+        "Unsupported comparison operation."
+    )
 
 def render_simple_answer(
     question: str,
     result: QueryResult,
 ) -> CensusAnswer | None:
     # Multi-metric queries are fully deterministic.
+    if result.query.comparison is not None:
+        return _render_comparison_answer(
+            result
+        )
     if len(result.query.metrics) > 1:
         return _render_multi_metric_answer(
             result

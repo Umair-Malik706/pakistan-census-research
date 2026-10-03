@@ -13,6 +13,13 @@ class OrderBy(BaseModel):
     field: str
     direction: Literal["asc", "desc"] = "desc"
 
+class ComparisonSpec(BaseModel):
+    operation: Literal[
+        "difference",
+        "percent_change",
+    ]
+    left_metric: str
+    right_metric: str
 
 class QuerySpec(BaseModel):
     metrics: list[str] = Field(min_length=1)
@@ -24,6 +31,8 @@ class QuerySpec(BaseModel):
     order_by: list[OrderBy] = Field(default_factory=list)
 
     limit: int | None = Field(default=None, ge=1, le=1000)
+
+    comparison: ComparisonSpec | None = None
 
 class QueryResult(BaseModel):
     query: QuerySpec

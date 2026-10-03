@@ -116,6 +116,59 @@ def validate_query_spec(spec: QuerySpec) -> QuerySpec:
     if len(spec.dimensions) != len(set(spec.dimensions)):
         errors.append("Duplicate dimensions are not allowed.")
 
+    if spec.comparison is not None:
+        comparison = spec.comparison
+
+        comparison_metrics = {
+            comparison.left_metric,
+            comparison.right_metric,
+        }
+
+        missing_metrics = [
+            metric
+            for metric in comparison_metrics
+            if metric not in spec.metrics
+        ]
+
+        if missing_metrics:
+            errors.append(
+                "Comparison metrics must also be "
+                "selected metrics: "
+                + ", ".join(missing_metrics)
+            )
+
+        if (
+            comparison.left_metric
+            == comparison.right_metric
+        ):
+            errors.append(
+                "Comparison metrics must be different."
+            )
+
+        if spec.dimensions:
+            errors.append(
+                "Comparative arithmetic currently "
+                "supports scalar queries only."
+            )
+
+        left_metadata = APPROVED_METRICS.get(
+            comparison.left_metric
+        )
+        right_metadata = APPROVED_METRICS.get(
+            comparison.right_metric
+        )
+
+        if (
+            left_metadata
+            and right_metadata
+            and left_metadata.get("unit")
+            != right_metadata.get("unit")
+        ):
+            errors.append(
+                "Comparison metrics must use "
+                "compatible units."
+            )
+
     if errors:
         raise ValueError(" | ".join(errors))
 
